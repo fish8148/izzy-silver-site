@@ -1,0 +1,137 @@
+/* ---------- Dance Party ---------- */
+
+/* The page-level "lights go down": dims the background colour and the dot grid together. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+
+body.is-party::before {
+  opacity: 0.78;
+}
+
+/* Coloured light show. JS drives --party-hue (0–360) and --party-level (0–1) every frame. */
+.hero__party {
+  --party-hue: 190;
+  --party-level: 0;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--party-level);
+  visibility: hidden;
+}
+
+.hero.is-party .hero__party {
+  visibility: visible;
+}
+
+.party-wash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(62% 58% at 50% 56%, hsl(var(--party-hue) 100% 55% / 0.16), transparent 72%);
+}
+
+/* the cone of the spotlight, narrow at the top and wide at the floor */
+.party-beam {
+  position: absolute;
+  left: 50%;
+  top: -8%;
+  width: min(84vmin, 800px);
+  height: calc(var(--frame-feet) * 100% + 8%);
+  translate: -50% 0;
+  clip-path: polygon(41% 0, 59% 0, 100% 100%, 0 100%);
+  background: linear-gradient(to bottom, hsl(var(--party-hue) 100% 68% / 0.5), hsl(var(--party-hue) 100% 56% / 0.13) 78%, transparent);
+  filter: blur(12px);
+}
+
+/* the pool of coloured light where the beam lands */
+.party-pool {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--frame-feet) * 100%);
+  width: min(92vmin, 880px);
+  aspect-ratio: 3.4 / 1;
+  translate: -50% -46%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    hsl(var(--party-hue) 100% 64% / 0.62),
+    hsl(var(--party-hue) 100% 52% / 0.16) 58%,
+    transparent 100%
+  );
+}
+
+.hero__floor {
+  transition: opacity 0.9s ease;
+}
+
+.hero.is-party .hero__floor {
+  opacity: 0;
+}
+
+.hero.is-party .floater__label:not(:hover, :focus-visible, [aria-expanded='true']) {
+  opacity: 0.32;
+}
+
+/* escape hatch shown while the party runs */
+.party-stop {
+  position: absolute;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 5;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.5s ease,
+    visibility 0s 0.5s,
+    border-color 0.2s ease;
+}
+
+.party-stop:hover {
+  border-color: var(--accent);
+}
+
+.party-stop kbd {
+  padding: 1px 6px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.hero.is-party .party-stop {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.5s ease 0.6s,
+    visibility 0s,
+    border-color 0.2s ease;
+}
+
+@media (hover: none) {
+  .party-stop kbd {
+    display: none;
+  }
+}

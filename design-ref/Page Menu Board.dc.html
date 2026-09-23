@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div ref="{{ rootRef }}" style="position:relative;width:1280px;height:800px;overflow:hidden;container-type:size;background-color:#1a1a1a;background-image:radial-gradient(circle at center, rgba(255,255,255,0.075) 1px, transparent 1.4px);background-size:28px 28px;background-position:14px 14px;font-family:Inter,system-ui,sans-serif;color:#f4f4f4;user-select:none">
+  <div data-dim="1" style="position:absolute;inset:0;transition:opacity 0.4s ease">
+    <div data-content="homepage" style="position:absolute;inset:0;opacity:0;transition:opacity 0.45s ease">
+      <div style="position:absolute;left:50%;top:87%;width:44cqh;height:6cqh;translate:-50% -50%;background:radial-gradient(ellipse at center, rgba(255,255,255,0.09), transparent 70%)"></div>
+      <div style="position:absolute;left:50%;top:21%;height:66%;width:21cqh;translate:-50% 0">
+        <div style="position:absolute;left:50%;top:0;width:34%;aspect-ratio:1;translate:-50% 0;border-radius:50%;background:linear-gradient(160deg,#3b3b3b,#262626)"></div>
+        <div style="position:absolute;left:50%;top:15%;width:62%;height:38%;translate:-50% 0;border-radius:38% 38% 18% 18%;background:linear-gradient(160deg,#393939,#252525)"></div>
+        <div style="position:absolute;left:4%;top:17%;width:14%;height:34%;border-radius:40px;rotate:8deg;background:linear-gradient(160deg,#363636,#242424)"></div>
+        <div style="position:absolute;right:4%;top:17%;width:14%;height:34%;border-radius:40px;rotate:-8deg;background:linear-gradient(160deg,#363636,#242424)"></div>
+        <div style="position:absolute;left:24%;top:51%;width:23%;height:49%;border-radius:30px 30px 14px 14px;background:linear-gradient(160deg,#343434,#222)"></div>
+        <div style="position:absolute;right:24%;top:51%;width:23%;height:49%;border-radius:30px 30px 14px 14px;background:linear-gradient(160deg,#343434,#222)"></div>
+      </div>
+      <div style="position:absolute;left:50%;top:18.5%;translate:-50% -100%">
+        <span style="display:block;padding:0.2em 0.7em 0.26em;font-size:17px;font-weight:500;letter-spacing:0.02em;white-space:nowrap;color:#fff;background:rgba(0,0,0,0.52)">izzy_silver</span>
+      </div>
+    </div>
+    <div data-content="say hi" style="position:absolute;inset:0;opacity:0;transition:opacity 0.45s ease">
+      <div style="position:absolute;left:50%;top:42%;width:38cqh;height:44cqh;translate:-50% -50%;border-radius:46% 46% 42% 42%;background:radial-gradient(circle at 40% 35%,#3a3a3a,#242424 70%)"></div>
+      <div style="position:absolute;left:50%;top:74%;translate:-50% 0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:clamp(15px,1.9cqw,40px)">
+        <span>isilver@uwaterloo.ca</span>
+        <span style="color:#8f8f8f">linkedin</span>
+      </div>
+    </div>
+    <div data-content="photos" style="position:absolute;inset:0;opacity:0;transition:opacity 0.45s ease">
+      <div style="position:absolute;left:0;top:13cqh;width:71.7cqw;height:72.5cqh;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)">
+        <div style="position:absolute;left:3.1cqw;top:0;display:flex;gap:2.5cqw">
+          <div style="flex:none;width:calc(min(22.5cqw,34.65cqh) * 4 / 3);height:min(22.5cqw,34.65cqh);border-radius:clamp(22px,3.3cqw,64px);background:#2a2a2a"></div>
+          <div style="flex:none;width:calc(min(22.5cqw,34.65cqh) * 4 / 3);height:min(22.5cqw,34.65cqh);border-radius:clamp(22px,3.3cqw,64px);background:#252525"></div>
+          <div style="flex:none;width:calc(min(22.5cqw,34.65cqh) * 3 / 4);height:min(22.5cqw,34.65cqh);border-radius:clamp(22px,3.3cqw,64px);background:#2e2e2e"></div>
+        </div>
+        <div style="position:absolute;left:3.1cqw;bottom:0;display:flex;gap:2.5cqw">
+          <div style="flex:none;width:calc(min(22.5cqw,34.65cqh) * 3 / 4);height:min(22.5cqw,34.65cqh);border-radius:clamp(22px,3.3cqw,64px);background:#232323"></div>
+          <div style="flex:none;width:calc(min(22.5cqw,34.65cqh) * 4 / 3);height:min(22.5cqw,34.65cqh);border-radius:clamp(22px,3.3cqw,64px);background:#292929"></div>
+          <div style="flex:none;width:calc(min(22.5cqw,34.65cqh) * 4 / 3);height:min(22.5cqw,34.65cqh);border-radius:clamp(22px,3.3cqw,64px);background:#262626"></div>
+        </div>
+      </div>
+    </div>
+    <div data-content="my things" style="position:absolute;inset:0;opacity:0;transition:opacity 0.45s ease">
+      <div style="position:absolute;left:52cqw;top:14cqh;width:11cqw;height:11cqw;rotate:14deg;border-radius:12%;background:linear-gradient(145deg,#ececec,#9a9a9a)"></div>
+      <div style="position:absolute;left:72cqw;top:20cqh;width:12cqw;height:12cqw;border-radius:50%;border:2.6cqw solid #3fe0c5"></div>
+      <div style="position:absolute;left:36cqw;top:44cqh;width:11cqw;height:12cqw;clip-path:polygon(50% 0,100% 100%,0 100%);background:linear-gradient(120deg,#e0cba6,#8f7a57)"></div>
+      <div style="position:absolute;left:58cqw;top:48cqh;width:10cqw;height:10cqw;rotate:-10deg;clip-path:polygon(50% 0,100% 38%,82% 100%,18% 100%,0 38%);background:linear-gradient(140deg,#e08a5c,#8a4523)"></div>
+      <div style="position:absolute;left:20cqw;top:22cqh;width:9cqw;height:9cqw;border-radius:50%;background:radial-gradient(circle at 35% 30%,#c6d3e2,#8aa0b8 45%,#3d4c5c)"></div>
+    </div>
+    <div data-content="about me" style="position:absolute;inset:0;opacity:0;transition:opacity 0.45s ease">
+      <div style="position:absolute;left:7cqw;top:12cqh;width:calc(min(22.5cqw,34.6cqh) * 0.75);height:min(22.5cqw,34.6cqh);border-radius:clamp(22px,3.3cqw,64px);background:#262626"></div>
+      <div style="position:absolute;left:calc(7cqw + min(22.5cqw,34.6cqh) * 0.75 + 2.85cqw);top:12cqh;width:calc(min(22.5cqw,34.6cqh) * 4 / 3);height:min(22.5cqw,34.6cqh);border-radius:clamp(22px,3.3cqw,64px);background:#2a2a2a"></div>
+      <div style="position:absolute;left:7.8cqw;top:calc(12cqh + min(22.5cqw,34.6cqh) + 4.5cqh);max-width:24.9em;font-size:clamp(15px,1.9cqw,40px);line-height:1.4;letter-spacing:-0.012em;display:flex;flex-direction:column;gap:1.4em">
+        <p style="margin:0">hi, my name is izzy silver. i’m a computer engineering student at university of waterloo.</p>
+        <p style="margin:0">growing up i had a passion for technology, design, and health.</p>
+        <p style="margin:0">currently i’m working at qdoc, a healthcare startup.</p>
+      </div>
+    </div>
+  </div>
+  <div data-label="homepage" style="position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;pointer-events:none;will-change:transform,opacity"><span style="display:block;translate:0 -50%;font-size:40px;line-height:1.15;white-space:nowrap;color:#3fe0c5;text-shadow:0 0 26px rgba(63,224,197,0.35);transition:text-shadow 0.3s ease">homepage</span></div>
+  <div data-label="say hi" style="position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;pointer-events:none;will-change:transform,opacity"><span style="display:block;translate:0 -50%;font-size:40px;line-height:1.15;white-space:nowrap;color:#fff;text-shadow:0 0 22px rgba(0,0,0,0.7);transition:text-shadow 0.3s ease">say hi</span></div>
+  <div data-label="photos" style="position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;pointer-events:none;will-change:transform,opacity"><span style="display:block;translate:0 -50%;font-size:40px;line-height:1.15;white-space:nowrap;color:#fff;text-shadow:0 0 22px rgba(0,0,0,0.7);transition:text-shadow 0.3s ease">photos</span></div>
+  <div data-label="my things" style="position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;pointer-events:none;will-change:transform,opacity"><span style="display:block;translate:0 -50%;font-size:40px;line-height:1.15;white-space:nowrap;color:#fff;text-shadow:0 0 22px rgba(0,0,0,0.7);transition:text-shadow 0.3s ease">my things</span></div>
+  <div data-label="about me" style="position:absolute;left:0;top:0;transform-origin:0 0;opacity:0;pointer-events:none;will-change:transform,opacity"><span style="display:block;translate:0 -50%;font-size:40px;line-height:1.15;white-space:nowrap;color:#fff;text-shadow:0 0 22px rgba(0,0,0,0.7);transition:text-shadow 0.3s ease">about me</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:800},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;stack&quot;,&quot;fan&quot;,&quot;row&quot;],&quot;default&quot;:&quot;stack&quot;,&quot;tsType&quot;:&quot;'stack'|'fan'|'row'&quot;},&quot;anim&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;swap&quot;,&quot;close&quot;,&quot;arc&quot;],&quot;default&quot;:&quot;swap&quot;,&quot;tsType&quot;:&quot;'swap'|'close'|'arc'&quot;},&quot;stayOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;start&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;homepage&quot;,&quot;say hi&quot;,&quot;photos&quot;,&quot;my things&quot;,&quot;about me&quot;],&quot;default&quot;:&quot;photos&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;drift&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.05,&quot;default&quot;:0.6,&quot;tsType&quot;:&quot;number&quot;},&quot;driftSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.25,&quot;max&quot;:3,&quot;step&quot;:0.05,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  O = ['homepage', 'say hi', 'photos', 'my things', 'about me'];
+  HX = 1010; HY = 658; STEP = 46; IND = 44; ITEM = 0.8;
+  rootRef = React.createRef();
+  EASE = {
+    outCubic: (p) => 1 - Math.pow(1 - p, 3),
+    inCubic: (p) => p * p * p,
+    inOutCubic: (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2),
+    outBack: (p) => { const c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+  };
+  mode() { return this.props.layout ?? 'stack'; }
+  componentDidMount() {
+    const root = this.rootRef.current;
+    this.labels = {};
+    root.querySelectorAll('[data-label]').forEach((el, i) => {
+      const span = el.firstElementChild;
+      this.labels[el.dataset.label] = { el, span, w: span.offsetWidth, h: span.offsetHeight, v: { x: this.HX, y: this.HY, s: this.ITEM, o: 0 }, tw: null, clock: i * 2.3, glow: null };
+    });
+    this.contents = {};
+    root.querySelectorAll('[data-content]').forEach((el) => (this.contents[el.dataset.content] = el));
+    this.dim = root.querySelector('[data-dim]');
+    this.cur = this.props.start ?? 'photos';
+    this.open = false; this.busy = false; this.hovered = null; this.timers = [];
+    this.apply(this.layout(this.cur, false), { dur: 0 });
+    this.showContent(this.cur);
+    if (document.fonts) document.fonts.ready.then(() => {
+      for (const L of Object.values(this.labels)) { L.w = L.span.offsetWidth; L.h = L.span.offsetHeight; }
+      if (!this.busy) this.apply(this.layout(this.cur, this.open), { dur: 0 });
+    });
+    this.onMove = (e) => this.move(e);
+    this.onClick = (e) => this.click(e);
+    this.onLeave = () => { this.setHover(null); if (this.open && !this.busy) this.scheduleClose(); };
+    root.addEventListener('mousemove', this.onMove);
+    root.addEventListener('click', this.onClick);
+    root.addEventListener('mouseleave', this.onLeave);
+    this.last = performance.now();
+    const loop = (now) => { this.frame(now); this.raf = requestAnimationFrame(loop); };
+    this.raf = requestAnimationFrame(loop);
+  }
+  componentWillUnmount() {
+    cancelAnimationFrame(this.raf);
+    this.timers.forEach(clearTimeout); clearTimeout(this.closeT);
+    const r = this.rootRef.current;
+    if (r) { r.removeEventListener('mousemove', this.onMove); r.removeEventListener('click', this.onClick); r.removeEventListener('mouseleave', this.onLeave); }
+  }
+  later(ms, fn) { this.timers.push(setTimeout(fn, ms)); }
+  layout(cur, open) {
+    const { O, HX, HY, STEP, IND, ITEM } = this, t = {}, m = this.mode();
+    if (m === 'fan') {
+      const c = O.indexOf(cur), H = (i) => (i === c ? 46 : 37), ys = [];
+      let bottom = HY + 23;
+      for (let i = O.length - 1; i >= 0; i--) { ys[i] = bottom - H(i) / 2; bottom -= H(i) + 9; }
+      const xi = (i) => HX + (i % 2 ? IND : 0);
+      O.forEach((n, i) => {
+        const d = Math.abs(i - c);
+        if (n === cur) t[n] = open ? { x: xi(i), y: ys[i], s: 1, o: 1, delay: 0 } : { x: HX, y: HY, s: 1, o: 1, delay: 120 };
+        else t[n] = open
+          ? { x: xi(i), y: ys[i], s: ITEM, o: 1, delay: 90 + d * 55, from: { x: xi(c), y: ys[c], o: 0 } }
+          : { x: xi(c), y: ys[c], s: ITEM, o: 0, delay: (4 - d) * 35 };
+      });
+      return t;
+    }
+    const items = O.filter((n) => n !== cur), N = items.length;
+    t[cur] = { x: HX, y: HY, s: 1, o: 1, delay: 0 };
+    if (m === 'row') {
+      let right = HX - 34;
+      for (let j = N - 1; j >= 0; j--) {
+        const n = items[j], x = right - this.labels[n].w * ITEM, k = N - 1 - j;
+        right = x - 34;
+        t[n] = open ? { x, y: HY, s: ITEM, o: 1, delay: k * 50, k } : { x: HX - 16, y: HY, s: ITEM, o: 0, delay: (N - 1 - k) * 30, k };
+      }
+      return t;
+    }
+    items.forEach((n, j) => {
+      const k = N - 1 - j;
+      t[n] = open ? { x: HX + (k % 2 ? IND : 0), y: HY - 54 - k * STEP, s: ITEM, o: 1, delay: k * 45, k } : { x: HX, y: HY + 4, s: ITEM, o: 0, delay: (N - 1 - k) * 30, k };
+    });
+    return t;
+  }
+  apply(targets, opts = {}) {
+    const now = performance.now();
+    for (const n in targets) {
+      const L = this.labels[n], t = targets[n];
+      if (!L) continue;
+      const to = { x: t.x, y: t.y, s: t.s, o: t.o };
+      if (opts.dur === 0) { L.v = to; L.tw = null; continue; }
+      const from = t.from ? { ...L.v, ...(L.v.o < 0.05 ? t.from : {}) } : { ...L.v };
+      L.tw = {
+        from, to, t0: now,
+        delay: (opts.delay != null ? opts.delay : t.delay || 0) + (opts.extra || 0),
+        dur: t.dur || opts.dur || 420, ease: this.EASE[t.ease || opts.ease || 'outCubic'],
+        sEase: t.sEase ? this.EASE[t.sEase] : null, arcX: t.arcX || 0, arcY: t.arcY || 0,
+      };
+    }
+  }
+  frame(now) {
+    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now;
+    const amt = this.props.drift ?? 0.6, spd = this.props.driftSpeed ?? 1;
+    for (const n in this.labels) {
+      const L = this.labels[n], tw = L.tw;
+      if (tw) {
+        const p = Math.max(0, Math.min(1, (now - tw.t0 - tw.delay) / tw.dur)), e = tw.ease(p), es = tw.sEase ? tw.sEase(p) : e, a = Math.sin(Math.PI * p);
+        L.v = {
+          x: tw.from.x + (tw.to.x - tw.from.x) * e + tw.arcX * a,
+          y: tw.from.y + (tw.to.y - tw.from.y) * e + tw.arcY * a,
+          s: tw.from.s + (tw.to.s - tw.from.s) * es,
+          o: tw.from.o + (tw.to.o - tw.from.o) * Math.min(1, e * 1.3),
+        };
+        if (p >= 1) { L.v = { ...tw.to }; L.tw = null; }
+      }
+      L.clock += dt * spd;
+      const ang = (2 * Math.PI * L.clock) / 9, size = 40 * L.v.s;
+      const dx = Math.sin(ang) * 0.2 * amt * size, dy = -(0.5 - 0.5 * Math.cos(ang)) * 0.62 * amt * size, rot = Math.sin(ang * 2) * 0.4 * amt;
+      L.el.style.transform = `translate(${(L.v.x + dx).toFixed(2)}px,${(L.v.y + dy).toFixed(2)}px) scale(${L.v.s.toFixed(4)}) rotate(${rot.toFixed(2)}deg)`;
+      L.el.style.opacity = Math.max(0, Math.min(1, L.v.o)).toFixed(3);
+      const g = this.hovered === n || (L.pulseUntil && now < L.pulseUntil);
+      if (g !== L.glow) {
+        L.glow = g;
+        const teal = n === 'homepage';
+        L.span.style.textShadow = g
+          ? (teal ? '0 0 5px rgba(63,224,197,0.95),0 0 16px rgba(63,224,197,0.75),0 0 38px rgba(63,224,197,0.55)' : '0 0 5px rgba(255,255,255,0.9),0 0 16px rgba(255,255,255,0.7),0 0 38px rgba(255,255,255,0.5)')
+          : (teal ? '0 0 26px rgba(63,224,197,0.35)' : '0 0 22px rgba(0,0,0,0.7)');
+      }
+    }
+  }
+  pt(e) {
+    const r = this.rootRef.current.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) * 1280) / r.width, y: ((e.clientY - r.top) * 800) / r.height };
+  }
+  hitBox(L, pad) {
+    const w = L.w * L.v.s, h = L.h * L.v.s;
+    return { l: L.v.x - pad, r: L.v.x + w + pad, t: L.v.y - h / 2 - pad, b: L.v.y + h / 2 + pad };
+  }
+  hit(p) {
+    for (const n in this.labels) {
+      const L = this.labels[n];
+      if (L.v.o < 0.5) continue;
+      const b = this.hitBox(L, 6);
+      if (p.x >= b.l && p.x <= b.r && p.y >= b.t && p.y <= b.b) return n;
+    }
+    return null;
+  }
+  setHover(n) { this.hovered = n; this.rootRef.current.style.cursor = n && (this.open || n === this.cur) ? 'pointer' : 'default'; }
+  move(e) {
+    const p = this.pt(e), h = this.hit(p);
+    this.setHover(h);
+    if (this.busy) return;
+    if (!this.open) { if (h === this.cur) this.openMenu(); return; }
+    let l = 1e9, r = -1e9, t = 1e9, b = -1e9;
+    for (const n in this.labels) {
+      const L = this.labels[n]; if (L.v.o < 0.3) continue;
+      const bx = this.hitBox(L, 40); l = Math.min(l, bx.l); r = Math.max(r, bx.r); t = Math.min(t, bx.t); b = Math.max(b, bx.b);
+    }
+    if (p.x >= l && p.x <= r && p.y >= t && p.y <= b) clearTimeout(this.closeT); else this.scheduleClose();
+  }
+  scheduleClose() { clearTimeout(this.closeT); this.closeT = setTimeout(() => { if (!this.busy) this.closeMenu(); }, 260); }
+  click(e) {
+    if (this.busy) return;
+    const h = this.hit(this.pt(e));
+    if (!h) return;
+    if (!this.open && h === this.cur) this.openMenu();
+    else if (this.open && h !== this.cur) this.switchTo(h);
+  }
+  openMenu() {
+    clearTimeout(this.closeT);
+    if (this.open) return;
+    this.open = true;
+    this.apply(this.layout(this.cur, true), { dur: this.mode() === 'fan' ? 460 : 420 });
+    this.dim.style.opacity = '0.22';
+  }
+  closeMenu() {
+    clearTimeout(this.closeT);
+    if (!this.open) return;
+    this.open = false;
+    this.apply(this.layout(this.cur, false), { dur: 300 });
+    this.dim.style.opacity = '1';
+  }
+  showContent(n) { for (const k in this.contents) this.contents[k].style.opacity = k === n ? '1' : '0'; }
+  switchTo(n) {
+    clearTimeout(this.closeT);
+    this.busy = true;
+    const old = this.cur, anim = this.props.anim ?? 'swap', m = this.mode();
+    this.later(180, () => this.showContent(n));
+    const done = (ms) => this.later(ms, () => { this.busy = false; });
+    if (this.props.stayOpen) {
+      this.cur = n;
+      const t = this.layout(n, true), ci = this.O.indexOf(n);
+      for (const k in t) {
+        if (m === 'fan') t[k] = { ...t[k], delay: Math.abs(this.O.indexOf(k) - ci) * 25, dur: 460, ease: 'inOutCubic' };
+        else if (k === n) t[k] = { ...t[k], delay: 0, dur: 580, ease: 'inOutCubic', sEase: 'outCubic' };
+        else if (k === old) t[k] = { ...t[k], delay: 30, dur: 580, ease: 'inOutCubic' };
+        else t[k] = { ...t[k], delay: 60 + (t[k].k || 0) * 30, dur: 460, ease: 'outCubic' };
+      }
+      this.apply(t, {});
+      this.busy = false;
+      return;
+    }
+    if (m === 'fan') {
+      this.cur = n;
+      this.apply(this.layout(n, true), { dur: 480, ease: 'inOutCubic', delay: 0 });
+      this.later(760, () => this.closeMenu());
+      done(1300);
+      return;
+    }
+    if (anim === 'close') {
+      this.closeMenu();
+      this.later(260, () => {
+        const HX = this.HX, HY = this.HY;
+        this.apply({ [old]: { x: HX, y: HY - 30, s: this.ITEM, o: 0 } }, { dur: 300, ease: 'inCubic' });
+        this.labels[n].v = { x: HX, y: HY + 34, s: 1, o: 0 };
+        this.apply({ [n]: { x: HX, y: HY, s: 1, o: 1 } }, { dur: 480, ease: 'outBack', delay: 140 });
+        this.cur = n;
+      });
+      this.later(1000, () => {
+        const t = this.layout(n, false); delete t[n];
+        this.apply(t, { dur: 0 });
+      });
+      done(1000);
+      return;
+    }
+    this.cur = n;
+    const t = this.layout(n, true);
+    if (anim === 'arc') {
+      t[n] = { ...t[n], arcX: 110, arcY: 12, sEase: 'outBack', ease: 'inOutCubic', dur: 760, delay: 0 };
+      t[old] = { ...t[old], arcX: -90, ease: 'inOutCubic', dur: 760, delay: 60 };
+      for (const k in t) if (k !== n && k !== old) t[k] = { ...t[k], delay: 120 + (t[k].k || 0) * 60, dur: 520, ease: 'outCubic' };
+      this.apply(t, {});
+      this.later(820, () => { this.labels[old].pulseUntil = performance.now() + 650; });
+      this.later(1700, () => this.closeMenu());
+      done(2050);
+      return;
+    }
+    this.apply(t, { dur: 620, ease: 'inOutCubic', delay: 0 });
+    this.later(1350, () => this.closeMenu());
+    done(1700);
+  }
+  renderVals() { return { rootRef: this.rootRef }; }
+}
+</script>
+</body>
+</html>

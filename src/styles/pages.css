@@ -1,0 +1,772 @@
+/* ---------- page shell ---------- */
+.hero {
+  --page-text: clamp(18px, 1.5vw + 5px, 32px);
+  --card-radius: clamp(18px, 2.4vw, 46px);
+  --pad: clamp(20px, 7vw, 140px);
+  --bleed: 64px; /* room inside the scroller for the slide-in from the left */
+  /* the label that becomes a page's header grows to this: about twice its size floating around the character */
+  --header-size: clamp(24px, 3.1vw, 64px);
+}
+
+@media (max-width: 640px) {
+  .hero {
+    --header-size: var(--label-size); /* no room to grow on a phone: the header sits where the label was */
+  }
+}
+
+.pages {
+  position: absolute;
+  inset: 0;
+  z-index: 3; /* above the canvas, below the floating labels (z 4) */
+  pointer-events: none;
+}
+
+.page {
+  position: absolute;
+  inset: 0;
+  outline: none;
+}
+
+.page[hidden] {
+  display: none;
+}
+
+.hero.is-page-open .hero__canvas {
+  pointer-events: none;
+}
+
+/* content column — the router sets --col-left / --col-width so it never runs under the header */
+.page__col {
+  position: absolute;
+  top: clamp(56px, 12vh, 150px);
+  bottom: 0;
+  left: calc(var(--col-left, 7vw) - var(--bleed));
+  width: calc(var(--col-width, 58vw) + var(--bleed));
+  padding: 0 0 56px var(--bleed);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+
+.page__col::-webkit-scrollbar {
+  display: none;
+}
+
+.page__soon {
+  margin: 0;
+  font-size: var(--page-text);
+  line-height: 1.25;
+  color: var(--muted);
+}
+
+/* ---------- header label (the clicked nav label) ---------- */
+.floater__label.is-header {
+  cursor: default; /* still hoverable / focusable / tappable: that's what reveals the page menu below */
+}
+
+/* the router adds .is-page-header to the header's floater (see poseHeader in router.js) and slides the label into it */
+.floater.is-page-header .floater__label {
+  font-size: var(--header-size);
+}
+
+/* Every page's header sits in the same spot, bottom-right (`aside-bottom` in every page module). Hovering / focusing
+   it reveals the other pages, stacked above it — see the page menu section further down and router.js. */
+.floater.is-page-header[data-pose='aside-bottom'],
+.floater.is-menu-item {
+  top: 82.2%;
+  left: 78.9%;
+  right: auto;
+}
+
+@media (max-width: 720px) {
+  .floater.is-page-header[data-pose='aside-bottom'],
+  .floater.is-menu-item {
+    top: 84.5%;
+    left: 60%;
+  }
+}
+
+/* ---------- page menu (hover / focus the header) ---------- */
+/* the other pages, folded up small at the header until the menu opens (router.js animates the rest via transform) */
+.floater.is-menu-item .floater__label {
+  font-size: calc(var(--header-size) * 0.8);
+}
+
+/* while the menu is open, the page content underneath steps back so the popped-out stack reads clearly
+   (the transition sits on the base rule so it eases back up when the menu closes, too) */
+.page {
+  transition: opacity 0.4s ease;
+}
+
+.hero.is-menu-open .page:not([hidden]) {
+  opacity: 0.4;
+}
+
+/* ---------- about me ---------- */
+.about-cards {
+  --card-gap: clamp(14px, 2.6vw, 44px);
+  --card-h: clamp(150px, 27vh, 400px);
+  display: flex;
+  gap: var(--card-gap);
+  /* the two cards (3:4 + 4:3) share one height: total width = height x (3/4 + 4/3) + gap */
+  width: min(100%, calc(var(--card-h) * 2.0833 + var(--card-gap)));
+}
+
+.about-card {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--card-radius);
+  background: var(--bg-raised);
+}
+
+.about-card--portrait {
+  flex: 9 1 0;
+  aspect-ratio: 3 / 4;
+}
+
+.about-card--wide {
+  flex: 16 1 0;
+  aspect-ratio: 4 / 3;
+}
+
+/* a resized photo comes wrapped in a <picture> (src/ui/image.js); it lays out as if the <img> were there on its own */
+.about-card picture,
+.gallery__card picture,
+.carousel__photo picture {
+  display: contents;
+}
+
+.about-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.about-text {
+  margin-top: clamp(24px, 5.5vh, 64px);
+}
+
+.about-text p {
+  margin: 0 0 1.05em;
+  font-size: var(--page-text);
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+}
+
+/* Desktop and tablet: the photos start at the left margin and the header sits in the top-right corner, sized in
+   cqw / cqh (a % of this page) like the photos page. Phones keep the compact column above, beside the header. */
+@media (min-width: 721px) {
+  .page--about {
+    container-type: size;
+    --about-h: min(22.5cqw, 34.6cqh); /* photo height: 3:4 portrait + 4:3 wide, side by side */
+    --about-gap: clamp(16px, 2.85cqw, 54px);
+    --photo-radius: clamp(22px, 3.3cqw, 64px);
+  }
+
+  .page--about .page__col {
+    top: 19.5cqh;
+    left: calc(7cqw - var(--bleed));
+    width: calc(66cqw + var(--bleed)); /* stops short of the header in the corner */
+  }
+
+  .about-cards {
+    gap: var(--about-gap);
+    width: auto;
+  }
+
+  .about-card,
+  .about-card--portrait,
+  .about-card--wide {
+    flex: none;
+    height: var(--about-h);
+    aspect-ratio: auto;
+    border-radius: var(--photo-radius);
+  }
+
+  .about-card--portrait {
+    width: calc(var(--about-h) * 3 / 4);
+  }
+
+  .about-card--wide {
+    width: calc(var(--about-h) * 4 / 3);
+  }
+
+  .about-text {
+    margin-top: 4.5cqh;
+    margin-left: 0.8cqw; /* the design sets the text a touch in from the photo edge */
+    max-width: 24.9em; /* in em, so the lines wrap where the design does ("...engineering" / "...design,") at every size */
+    font-size: clamp(17px, 1.9cqw, 40px);
+  }
+
+  .about-text p {
+    font-size: inherit;
+    line-height: 1.4;
+    margin-bottom: 1.4em; /* one blank line between paragraphs */
+  }
+
+  .about-text p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+/* ---------- photos (the "Photos Board" design, 7a "grow") ---------- */
+/* Sized from the design's 1280×800 board: --u is one design px (photos.js sets it from the page's size). */
+.page--photos {
+  --u: min(0.0781vw, 0.125vh);
+}
+
+/* the rows: each drifts to the right and loops (photos.js moves them) */
+.gallery {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: opacity 0.5s ease;
+}
+
+.page--photos.is-carousel .gallery {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gallery__row {
+  position: absolute;
+  left: 0;
+  display: flex;
+  gap: calc(36 * var(--u));
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.gallery__row[data-row='0'] {
+  top: calc(24 * var(--u));
+}
+
+.gallery__row[data-row='1'] {
+  top: calc(346 * var(--u));
+}
+
+/* each photo is a button: clicking it opens the carousel */
+.gallery__card {
+  position: relative;
+  flex: none;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  color: #fff;
+  width: calc(387 * var(--u));
+  height: calc(290 * var(--u));
+  overflow: hidden;
+  border-radius: calc(40 * var(--u));
+  background: var(--bg-raised);
+  box-shadow: 0 calc(10 * var(--u)) calc(28 * var(--u)) rgba(0, 0, 0, 0.6);
+  outline-offset: 4px;
+  cursor: pointer;
+  transform: translateZ(0);
+}
+
+.gallery__card--tall {
+  width: calc(218 * var(--u));
+}
+
+.gallery__card img,
+.carousel__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+}
+
+/* the glassy edge: a hairline all round and a bright lip along the top (the About photos wear it too) */
+.gallery__rim,
+.about-card__rim {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    inset 0 2px 1px rgba(255, 255, 255, 0.22);
+}
+
+/* the About photos keep their softer, fuller glass edge */
+.about-card__rim {
+  box-shadow:
+    inset 0 1.5px 1px rgba(255, 255, 255, 0.6),
+    inset 0 -2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 14px 20px -12px rgba(255, 255, 255, 0.28);
+}
+
+/* hovering a photo fades in a dark gradient with its description. (.is-armed: the mouse has moved since the page
+   opened, so the photo the pointer happened to be resting on doesn't light up by itself.) */
+.gallery__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.45) 26%, rgba(0, 0, 0, 0) 55%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.gallery__desc {
+  position: absolute;
+  left: calc(24 * var(--u));
+  right: calc(24 * var(--u));
+  bottom: calc(24 * var(--u));
+  font-size: max(13px, calc(24 * var(--u)));
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  text-wrap: pretty;
+  transform: translateY(calc(8 * var(--u)));
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.gallery.is-armed .gallery__card:hover .gallery__shade,
+.gallery__card:focus-visible .gallery__shade {
+  opacity: 1;
+}
+
+.gallery.is-armed .gallery__card:hover .gallery__desc,
+.gallery__card:focus-visible .gallery__desc {
+  transform: none;
+}
+
+/* ---------- photos: the carousel ---------- */
+.carousel {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  cursor: zoom-out; /* a click on the background goes back to the rows */
+}
+
+.carousel[hidden] {
+  display: none;
+}
+
+.carousel__photo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  border-radius: calc(48 * var(--u));
+  background: var(--bg-raised);
+  transform-origin: 50% 50%;
+  will-change: transform;
+  outline-offset: 4px;
+  cursor: default;
+  transition:
+    transform 0.62s cubic-bezier(0.3, 0.7, 0.2, 1),
+    opacity 0.4s ease;
+}
+
+.carousel__photo.is-side {
+  cursor: pointer;
+}
+
+/* the neighbours sit in shadow */
+.carousel__shade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0.45;
+  transition: opacity 0.62s ease;
+  pointer-events: none;
+}
+
+.carousel__photo.is-centre .carousel__shade {
+  opacity: 0;
+}
+
+.carousel.is-still .carousel__photo,
+.carousel.is-still .carousel__desc {
+  transition: none;
+}
+
+.carousel__desc {
+  position: absolute;
+  margin: 0;
+  font-size: max(16px, calc(26 * var(--u)));
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.carousel__desc span {
+  display: inline-block;
+}
+
+/* ---------- say hi ---------- */
+/* the stage fills the whole page so a stretched head can go anywhere; presses on empty space orbit the camera */
+.hi-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hi-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: default;
+  opacity: 0; /* fades in once the head has drawn its first frame (face-lift.js adds .is-ready) */
+  transition: opacity 0.7s ease;
+}
+
+.hi-canvas.is-ready {
+  opacity: 1;
+}
+
+.hi-canvas.is-over-head {
+  cursor: grab;
+}
+
+.hi-canvas.is-grabbing {
+  cursor: grabbing;
+}
+
+.hi-note {
+  position: absolute;
+  left: 50%;
+  top: 47%;
+  translate: -50% -50%;
+  margin: 0;
+  max-width: 28ch;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.hi-contact {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5.5%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--header-size);
+  line-height: 1.32;
+  letter-spacing: -0.012em;
+  pointer-events: none; /* only the words themselves are clickable, so drags beside them still reach the stage */
+}
+
+.hi-link {
+  pointer-events: auto;
+  color: #fff;
+  text-decoration: none;
+  /* the same underline that slides in under the home-screen labels */
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 0 1px;
+  transition: background-size 0.28s ease;
+}
+
+.hi-link:hover,
+.hi-link:focus-visible {
+  background-size: 100% 1px;
+}
+
+.hi-link.is-plain {
+  background: none;
+}
+
+.hi-tools {
+  position: absolute;
+  left: clamp(20px, 3.4vw, 64px);
+  bottom: clamp(18px, 4.4vh, 48px);
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.hi-reset {
+  pointer-events: auto;
+  padding: 0.5em 1.15em;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.hi-reset:hover,
+.hi-reset:focus-visible {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.hi-hint {
+  margin: 0;
+  max-width: 17em;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.hi-hint__touch {
+  display: none;
+}
+
+@media (hover: none) {
+  .hi-hint__mouse {
+    display: none;
+  }
+
+  .hi-hint__touch {
+    display: inline;
+  }
+}
+
+@media (max-width: 720px) {
+  .hi-contact {
+    bottom: calc(var(--col-bottom, 13%) + 8px); /* above the header, which sits across the bottom on a phone */
+    font-size: clamp(18px, 5.6vw, 26px);
+  }
+
+  .hi-tools {
+    left: 0;
+    right: 0;
+    bottom: max(16px, 3.4vh);
+    justify-items: center;
+    text-align: center;
+  }
+}
+
+/* ---------- my things ---------- */
+.page--things {
+  container-type: size; /* so the text can be placed in cqw / cqh, and switch layout by the page's own shape */
+}
+
+/* the stage fills the whole page: the objects float over all of it and bounce off its edges */
+.things-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.things-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none; /* a drag on an object is a throw, not a page scroll */
+  cursor: default;
+  opacity: 0; /* fades in once the objects have drawn their first frame (floating-things.js adds .is-ready) */
+  transition: opacity 0.6s ease;
+}
+
+.things-canvas.is-ready {
+  opacity: 1;
+}
+
+.things-canvas.is-over-thing {
+  cursor: grab;
+}
+
+.things-canvas.is-dragging {
+  cursor: grabbing;
+}
+
+.things-note {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  translate: -50% -50%;
+  margin: 0;
+  max-width: 28ch;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* what an open object says: a title and a description, in the column to the right of it */
+.things-info {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.things-title,
+.things-desc {
+  position: absolute;
+  left: 57.9cqw;
+  width: 21.4cqw;
+  margin: 0;
+  translate: 0 -50%;
+  text-align: center;
+  text-wrap: balance;
+  letter-spacing: -0.012em;
+  opacity: 0;
+  transform: translateX(28px);
+  transition:
+    opacity 0.45s ease,
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.things-title {
+  top: 32cqh;
+  font-size: var(--header-size);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.things-desc {
+  top: 58cqh;
+  font-size: clamp(16px, 2.08cqw, 40px);
+  line-height: 1.32;
+}
+
+.things-info.is-open .things-title,
+.things-info.is-open .things-desc {
+  opacity: 1;
+  transform: none;
+}
+
+.things-info.is-open .things-title {
+  transition-delay: 0.2s;
+}
+
+.things-info.is-open .things-desc {
+  transition-delay: 0.32s;
+}
+
+/* tall, narrow pages (phones): the object opens at the top and the text sits underneath it */
+@container (max-aspect-ratio: 9 / 10) {
+  .things-title,
+  .things-desc {
+    left: 8cqw;
+    width: 84cqw;
+  }
+
+  .things-title {
+    top: 55cqh;
+    font-size: clamp(24px, 7.5cqw, 36px);
+  }
+
+  .things-desc {
+    top: 70cqh;
+    font-size: clamp(16px, 4.6cqw, 26px);
+  }
+}
+
+/* the same objects as buttons, for keyboards and screen readers: hidden until one of them has focus */
+.things-list {
+  position: absolute;
+  left: 50%;
+  top: 14px;
+  translate: -50% 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.things-list:not(:focus-within) {
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.things-list button {
+  pointer-events: auto; /* (.pages switches pointer events off, and that is inherited) */
+  padding: 0.5em 1.1em;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--fg);
+  background: rgba(24, 24, 24, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.things-motion {
+  pointer-events: auto;
+  position: absolute;
+  right: 16px;
+  bottom: max(16px, 3.4vh);
+  padding: 0.55em 1.2em;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.things-motion[hidden] {
+  display: none;
+}
+
+/* ---------- narrow screens ---------- */
+@media (max-width: 720px) {
+  /* the header sits across the bottom of the screen, so content scrolls in the full-width space above it */
+  .page__col {
+    bottom: var(--col-bottom, 0);
+    padding-bottom: 24px;
+  }
+
+  /* phones: no drifting rows, just a two-column grid (the middle copy of each) that scrolls up and down, above the header */
+  .gallery {
+    top: clamp(56px, 12vh, 150px);
+    bottom: var(--col-bottom, 96px);
+    left: var(--col-left, 7vw);
+    width: var(--col-width, 86vw);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: clamp(8px, 2.5vw, 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: 24px;
+    scrollbar-width: none;
+  }
+
+  .gallery__row {
+    display: contents;
+  }
+
+  .gallery__card:not([data-copy='1']) {
+    display: none;
+  }
+
+  .gallery__card,
+  .gallery__card--tall {
+    width: auto;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    border-radius: clamp(18px, 5vw, 28px);
+  }
+}

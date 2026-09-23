@@ -1,0 +1,266 @@
+/* ---------- floating nav labels ---------- */
+.hero {
+  /* the floating labels: big (about 36px on a laptop) */
+  --label-size: clamp(22px, 1.45vw + 15px, 44px);
+  /* the nametag above the head keeps the smaller size the labels used to have */
+  --tag-size: clamp(15px, 0.9vw + 11px, 24px);
+  /* the least a label keeps from the screen's edge */
+  --edge: clamp(14px, 2vw, 32px);
+}
+
+.floaters {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none; /* the canvas underneath keeps receiving drags; only labels are clickable */
+}
+
+.floater {
+  /*
+   * How far a label sits from the centre line. Each label says how far it would like to be (--want, a share of the screen),
+   * and how many letters it has (--chars, --chars-short on phones): the gap never gets bigger than what's left of the
+   * half-screen once the label's own width and the margin are taken off, so a bigger, farther label can't leave the screen.
+   */
+  --n: var(--chars, 8);
+  --reach: calc(50vw - var(--n) * 0.56 * var(--label-size) - var(--edge));
+  --gap: min(var(--want, 20vw), var(--reach));
+
+  position: absolute;
+  /* vertical position: --h = 0 at the character's feet, 1 at the top of the head */
+  top: calc((var(--frame-feet) - var(--h) * var(--frame-span)) * 100%);
+  /* --sway-x / --sway-y: how far the phone's movement has swung the label (src/ui/sway.js) */
+  translate: var(--sway-x, 0px) calc(-50% + var(--sway-y, 0px));
+  pointer-events: auto;
+}
+
+.floater[data-side='left'] {
+  right: calc(50% + var(--gap));
+}
+
+.floater[data-side='right'] {
+  left: calc(50% + var(--gap));
+}
+
+.floater__label {
+  display: inline-block;
+  margin: -10px -6px;
+  padding: 10px 6px;
+  font-family: var(--font);
+  font-size: var(--label-size);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 0 22px rgba(0, 0, 0, 0.7);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition:
+    text-shadow 0.35s ease,
+    opacity 0.6s ease,
+    color 0.2s ease;
+  animation: bob var(--bob, 9s) ease-in-out var(--bob-delay, 0s) infinite;
+}
+
+/* hover / focus: the label glows (it used to get an underline) */
+.floater__label:hover,
+.floater__label:focus-visible {
+  text-shadow:
+    0 0 5px rgba(255, 255, 255, 0.9),
+    0 0 16px rgba(255, 255, 255, 0.7),
+    0 0 38px rgba(255, 255, 255, 0.5),
+    0 0 80px rgba(255, 255, 255, 0.3);
+}
+
+.floater__label--accent {
+  color: var(--accent);
+  text-shadow: 0 0 26px rgba(63, 224, 197, 0.35);
+}
+
+.floater__label--accent:hover,
+.floater__label--accent:focus-visible {
+  text-shadow:
+    0 0 5px rgba(63, 224, 197, 0.95),
+    0 0 16px rgba(63, 224, 197, 0.75),
+    0 0 38px rgba(63, 224, 197, 0.55),
+    0 0 80px rgba(63, 224, 197, 0.35);
+}
+
+.floater__label .short {
+  display: none;
+}
+
+/*
+ * The float: a slow loop that drifts up, sideways and back with a hint of tilt. Distances are in label sizes, so it looks the
+ * same on a laptop and a phone, and each label scales it by its own --amp (and has its own speed, --bob) so they never move together.
+ */
+@keyframes bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(calc(var(--label-size) * 0.2 * var(--amp, 1)), calc(var(--label-size) * -0.34 * var(--amp, 1)), 0) rotate(0.5deg);
+  }
+  50% {
+    transform: translate3d(calc(var(--label-size) * -0.1 * var(--amp, 1)), calc(var(--label-size) * -0.62 * var(--amp, 1)), 0) rotate(-0.4deg);
+  }
+  75% {
+    transform: translate3d(calc(var(--label-size) * -0.26 * var(--amp, 1)), calc(var(--label-size) * -0.22 * var(--amp, 1)), 0) rotate(0.35deg);
+  }
+}
+
+/* very narrow phones: a touch smaller so the widest labels still clear the screen edge */
+@media (max-width: 350px) {
+  .hero {
+    --label-size: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero {
+    --label-size: clamp(18px, 5vw, 24px);
+  }
+
+  .floater {
+    --n: var(--chars-short, var(--chars, 8)); /* the short text is what's showing */
+  }
+
+  .floater__label .full {
+    display: none;
+  }
+  .floater__label .short {
+    display: inline;
+  }
+}
+
+/* ---------- interact menu ---------- */
+.interact-menu {
+  position: absolute;
+  top: calc(100% + 14px);
+  right: 0;
+  min-width: 176px;
+  padding: 6px;
+  display: grid;
+  gap: 2px;
+  background: rgba(24, 24, 24, 0.94);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transform-origin: top right;
+  animation: menu-in 0.16s ease-out;
+}
+
+.interact-menu[hidden] {
+  display: none;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.interact-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  text-align: left;
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.interact-menu button::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.2s ease;
+}
+
+.interact-menu button:hover:not(:disabled),
+.interact-menu button:focus-visible {
+  outline: none;
+  color: var(--accent);
+  background: rgba(63, 224, 197, 0.1);
+}
+
+.interact-menu button:hover:not(:disabled)::before,
+.interact-menu button:focus-visible::before {
+  background: var(--accent);
+}
+
+.interact-menu button:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+@media (max-width: 900px) {
+  /* on narrow screens the label sits near the left edge, so open the menu toward the centre */
+  .interact-menu {
+    right: auto;
+    left: -6px;
+    transform-origin: top left;
+  }
+}
+
+/* ---------- Minecraft-style nametag ---------- */
+.nametag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  margin: 0;
+  translate: -50% -100%; /* anchor: bottom-centre of the tag sits on the point JS gives it */
+  pointer-events: none;
+  will-change: transform, opacity;
+  transition: opacity 0.7s ease;
+}
+
+.nametag.is-hidden {
+  opacity: 0;
+}
+
+.nametag__text {
+  display: block;
+  padding: 0.2em 0.7em 0.26em;
+  font-size: var(--tag-size);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.52);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: tag-bob 3.8s ease-in-out infinite;
+}
+
+@keyframes tag-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floater__label,
+  .nametag__text {
+    animation: none;
+  }
+}

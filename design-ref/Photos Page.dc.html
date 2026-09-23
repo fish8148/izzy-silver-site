@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#111;color:#f4f4f4;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#f4f4f4}a:hover{color:#3fe0c5}
+*{box-sizing:border-box}
+</style>
+</helmet>
+<section data-screen-label="Photos page" style="padding:64px;display:flex;flex-direction:column;gap:32px">
+  <div style="display:flex;flex-direction:column;gap:6px;max-width:860px">
+    <div style="font-size:22px;font-weight:500">Photos page with hover description and carousel</div>
+    <div style="font-size:14px;color:#8f8f8f;text-wrap:pretty">Two rows drift right and loop, and pause while you hover. Hovering a photo fades in a black gradient with its description. Clicking a photo opens the carousel. In the carousel, click a side photo or use ← → to move (it loops). Esc, clicking the background or the ↩ button returns to the grid. The three boards differ only in how the carousel opens and closes. The photos are tinted placeholders.</div>
+  </div>
+  <div style="display:flex;flex-wrap:wrap;gap:48px">
+    <div id="7a" style="display:flex;flex-direction:column;gap:12px;width:1280px">
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#8f8f8f"><span style="padding:2px 9px;border-radius:999px;background:#3fe0c5;color:#06201c;font-weight:500">7a</span><span style="color:#f4f4f4">Grow</span>The clicked photo lifts out of the row and grows into the centre while the grid fades away. The neighbours and description fade in after it lands. On close it flies back to its spot in the row.</div>
+      <dc-import name="Photos Board" variant="grow" drift-speed="{{ driftSpeed }}" hint-size="1280px,800px"></dc-import>
+    </div>
+    <div id="7b" style="display:flex;flex-direction:column;gap:12px;width:1280px">
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#8f8f8f"><span style="padding:2px 9px;border-radius:999px;background:#3fe0c5;color:#06201c;font-weight:500">7b</span><span style="color:#f4f4f4">Fade</span>The grid sinks back and fades out as the carousel settles in from slightly larger.</div>
+      <dc-import name="Photos Board" variant="fade" drift-speed="{{ driftSpeed }}" hint-size="1280px,800px"></dc-import>
+    </div>
+    <div id="7c" style="display:flex;flex-direction:column;gap:12px;width:1280px">
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#8f8f8f"><span style="padding:2px 9px;border-radius:999px;background:#3fe0c5;color:#06201c;font-weight:500">7c</span><span style="color:#f4f4f4">Slide</span>The grid slides off to the left and the carousel follows in from the right, like moving to the next room. Closing slides it back.</div>
+      <dc-import name="Photos Board" variant="slide" drift-speed="{{ driftSpeed }}" hint-size="1280px,800px"></dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;driftSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:60,&quot;step&quot;:1,&quot;default&quot;:16,&quot;unit&quot;:&quot;px/s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Grid&quot;}}">
+class Component extends DCLogic {
+  renderVals() { return { driftSpeed: this.props.driftSpeed ?? 16 }; }
+}
+</script>
+</body>
+</html>
