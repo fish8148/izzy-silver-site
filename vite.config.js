@@ -24,11 +24,9 @@ const savePoster = {
   },
 };
 
-// Zero-config for Vercel / Netlify: `npm run build` -> dist/, served from `/`.
-// GitHub Pages serves a project site from /<repo>/ instead, so its workflow (.github/workflows/deploy.yml)
-// builds with GH_PAGES=1, which switches every asset URL (import.meta.env.BASE_URL, used throughout src/) to match.
+// `npm run build` -> dist/, served from `/` — true on Vercel/Netlify, and on GitHub Pages too now that
+// isilver.uwce.ca (public/CNAME) fronts it: a custom domain serves the site at its root, not at /<repo>/.
 export default defineConfig({
-  base: process.env.GH_PAGES ? '/izzy-silver-site/' : '/',
   plugins: [savePoster],
   build: {
     target: 'es2022',
