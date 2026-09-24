@@ -9,6 +9,6 @@ export const about = {
   paragraphs: [
     'hi, my name is izzy silver. i’m a computer engineering student at university of waterloo.',
     'growing up i had a passion for technology, design, and health.',
-    'currently i’m working at qdoc, a healthcare startup.',
+    'currently i’m in my 2a term. i’m serving as the CFO of engsoc waterloo, and academic rep for my class.',
   ],
 };
