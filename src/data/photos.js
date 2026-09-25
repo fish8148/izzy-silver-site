@@ -10,10 +10,20 @@
  *            wide, tall and bottom: tall, wide, wide. The shorter row just spreads its gaps a little.
  */
 export const photos = [
-  { src: 'photos/placeholder-1.svg', alt: 'placeholder photo 1', caption: '[caption for photo 1 — where, when, who]' },
-  { src: 'photos/placeholder-2.svg', alt: 'placeholder photo 2', caption: '[caption for photo 2 — where, when, who]' },
-  { src: 'photos/placeholder-3.svg', alt: 'placeholder photo 3', caption: '[caption for photo 3 — where, when, who]', shape: 'tall' },
-  { src: 'photos/placeholder-4.svg', alt: 'placeholder photo 4', caption: '[caption for photo 4 — where, when, who]', shape: 'tall' },
-  { src: 'photos/placeholder-5.svg', alt: 'placeholder photo 5', caption: '[caption for photo 5 — where, when, who]' },
-  { src: 'photos/placeholder-6.svg', alt: 'placeholder photo 6', caption: '[caption for photo 6 — where, when, who]' },
+  { src: 'photos/washington1.svg', alt: 'placeholder photo 1', caption: '[caption for photo 1 — where, when, who]', shape: 'tall' },
+  { src: 'photos/washington2.svg', alt: 'placeholder photo 2', caption: '[caption for photo 2 — where, when, who]', shape: 'wide' },
+  { src: 'photos/camp1.svg', alt: 'placeholder photo 3', caption: '[caption for photo 3 — where, when, who]', shape: 'wide' },
+  { src: 'photos/camp2.svg', alt: 'placeholder photo 4', caption: '[caption for photo 4 — where, when, who]', shape: 'tall' },
+  { src: 'photos/camp3.svg', alt: 'placeholder photo 5', caption: '[caption for photo 5 — where, when, who]', shape: 'wide' },
+  { src: 'photos/camp4.svg', alt: 'placeholder photo 6', caption: '[caption for photo 6 — where, when, who]', shape: 'tall' },
+  { src: 'photos/camp5.svg', alt: 'placeholder photo 7', caption: '[caption for photo 7 — where, when, who]', shape: 'tall' },
+  { src: 'photos/camp6.svg', alt: 'placeholder photo 8', caption: '[caption for photo 8 — where, when, who]', shape: 'wide' },
+  { src: 'photos/camp7.svg', alt: 'placeholder photo 9', caption: '[caption for photo 9 — where, when, who]', shape: 'wide' },
+  { src: 'photos/camp8.svg', alt: 'placeholder photo 10', caption: '[caption for photo 10 — where, when, who]', shape: 'wide' }
+  { src: 'photos/camp9.svg', alt: 'placeholder photo 11', caption: '[caption for photo 11 — where, when, who]', shape: 'wide' },
+  { src: 'photos/camp10.svg', alt: 'placeholder photo 12', caption: '[caption for photo 12 — where, when, who]', shape: 'wide' }
+  { src: 'photos/camp11.svg', alt: 'placeholder photo 13', caption: '[caption for photo 13 — where, when, who]', shape: 'tall' },
+  { src: 'photos/camp12.svg', alt: 'placeholder photo 14', caption: '[caption for photo 14 — where, when, who]', shape: 'wide' },
+  { src: 'photos/camp13.svg', alt: 'placeholder photo 15', caption: '[caption for photo 15 — where, when, who]', shape: 'wide' },
+
 ];
