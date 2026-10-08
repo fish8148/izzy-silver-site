@@ -10,6 +10,7 @@ import { createInteractMenu } from './ui/interact-menu.js';
 import { createPageRouter, pages } from './pages/index.js';
 import { createNametag } from './ui/nametag.js';
 import { createSway } from './ui/sway.js';
+import { createScrollFade } from './ui/scroll-fade.js';
 
 // UI that doesn't need WebGL is set up immediately, so the labels work from first paint.
 const nametag = createNametag(document.getElementById('nametag'));
@@ -22,6 +23,7 @@ const menu = createInteractMenu({
 const hero = document.getElementById('top');
 const router = createPageRouter({ hero, pages });
 hero.addEventListener('page:returning', () => nametag.wake()); // the name floats back in with the home screen
+createScrollFade(hero);
 createSway(hero); // on a phone, the labels sway with its movement
 if (import.meta.env.DEV) window.__router = router;
 

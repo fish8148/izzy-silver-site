@@ -273,3 +273,11 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 - A browser tab/pane that's hidden (backgrounded) can stall `element.animate().finished` indefinitely, since the compositor
   isn't painting — an `await`ed router call can hang until the tab is visible again. Fire it without awaiting
   (`window.__router.open('about')`, no `await`) and poll state separately if you're driving the router from a background tab.
+
+## Scrolling and touch
+
+- **Photos rows** (desktop, and tablets held sideways): drag them with a mouse, finger or pen, or scroll with the wheel / trackpad. A flick coasts, then the rows carry on drifting. A drag never counts as a click.
+- **Photo viewer**: swipe or scroll sideways to move along (as well as the arrow keys and clicking a neighbour).
+- **Phones and tablets held upright**: the photos are a grid that scrolls up and down (2 columns, 3 on a tablet).
+- **Page columns** (About etc.) scroll inside the page; a soft fade at the top / bottom shows when there is more (`src/ui/scroll-fade.js`).
+- A landscape phone no longer forces the whole page to scroll: the hero fits the screen and the content scrolls inside it.

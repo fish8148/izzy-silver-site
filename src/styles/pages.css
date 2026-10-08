@@ -46,8 +46,27 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   pointer-events: auto;
+}
+
+/* scroll-edge fades: ui/scroll-fade.js adds .has-above / .has-below when there is more to scroll to */
+.page__col,
+.gallery {
+  --fade-size: clamp(24px, 5vh, 56px);
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
+}
+
+.has-above {
+  --fade-top: var(--fade-size);
+}
+
+.has-below {
+  --fade-bottom: var(--fade-size);
 }
 
 .page__col::-webkit-scrollbar {
@@ -227,7 +246,15 @@
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: pan-y; /* a sideways drag moves the rows (photos.js) */
+  cursor: grab;
   transition: opacity 0.5s ease;
+}
+
+.gallery.is-dragging,
+.gallery.is-dragging .gallery__card {
+  cursor: grabbing;
 }
 
 .page--photos.is-carousel .gallery {
@@ -348,6 +375,8 @@
   inset: 0;
   pointer-events: auto;
   cursor: zoom-out; /* a click on the background goes back to the rows */
+  touch-action: pan-y; /* a sideways swipe moves along (photos.js) */
+  -webkit-touch-callout: none;
 }
 
 .carousel[hidden] {
@@ -737,19 +766,29 @@
     bottom: var(--col-bottom, 0);
     padding-bottom: 24px;
   }
+}
 
-  /* phones: no drifting rows, just a two-column grid (the middle copy of each) that scrolls up and down, above the header */
+/* Phones, and tablets held upright: no drifting rows, just a grid (the middle copy of each photo) that scrolls up and down,
+   above the header. photos.js matches this same query. */
+@media (max-width: 720px), (max-width: 1100px) and (orientation: portrait) {
   .gallery {
+    --cols: 2;
+    --grid-gap: clamp(8px, 2.5vw, 16px);
     top: clamp(56px, 12vh, 150px);
     bottom: var(--col-bottom, 96px);
     left: var(--col-left, 7vw);
     width: var(--col-width, 86vw);
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    /* (rows are sized from the width, not left to "auto": the cards' aspect ratio doesn't size an auto row, so they overlapped) */
+    grid-auto-rows: calc((var(--col-width, 86vw) - (var(--cols) - 1) * var(--grid-gap)) / var(--cols));
     align-content: start;
-    gap: clamp(8px, 2.5vw, 16px);
+    gap: var(--grid-gap);
     overflow-y: auto;
     overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    cursor: auto;
     padding-bottom: 24px;
     scrollbar-width: none;
   }
@@ -768,5 +807,11 @@
     height: auto;
     aspect-ratio: 1 / 1;
     border-radius: clamp(18px, 5vw, 28px);
+  }
+}
+
+@media (min-width: 560px) and (max-width: 1100px) and (orientation: portrait) {
+  .gallery {
+    --cols: 3;
   }
 }

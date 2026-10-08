@@ -4,8 +4,18 @@
   height: 100vh;
   height: 100svh;
   min-height: 520px;
+  /* iOS: no grey flash on tap, no long-press callout or text-selection magnifier on the labels / canvas */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
   overflow: hidden;
   isolation: isolate;
+}
+
+/* a landscape phone is shorter than 520px: fit the screen instead of making the whole page scroll (pages scroll inside) */
+@media (max-height: 520px) {
+  .hero {
+    min-height: 0;
+  }
 }
 
 /* soft pool of light on the "floor" under the character's feet */

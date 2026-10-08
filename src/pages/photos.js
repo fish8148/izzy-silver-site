@@ -7,16 +7,18 @@ import { photoElement } from '../ui/image.js';
  *
  * - Two rows drift to the right and loop, each on its own (the bottom one a little slower). They keep drifting under the
  *   pointer; only the carousel eases them to a stop (and back up once it closes).
+ * - You can also take hold of the rows: drag (mouse, finger or pen), or scroll with the wheel / trackpad. They coast on a
+ *   flick, then carry on drifting. In the carousel, swipe or scroll sideways to move along.
  * - Hovering a photo fades in a dark gradient with its description.
  * - Clicking a photo lifts it out of its row and grows it into the centre while the rows fade away; its neighbours and
  *   the description fade in as it arrives. A neighbour, or ← / →, moves along (it loops). Esc, or a click on the
  *   background, sends it flying back to the nearest copy of it in the rows.
- * - Phones get a plain two-column grid that scrolls instead of the rows (pages.css); the carousel works the same.
+ * - Phones (and tablets held upright) get a plain grid that scrolls instead of the rows (pages.css); the carousel works the same.
  */
 
 const canHover = window.matchMedia('(hover: hover)').matches;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const narrow = window.matchMedia('(max-width: 720px)');
+const narrow = window.matchMedia('(max-width: 720px), (max-width: 1100px) and (orientation: portrait)'); // phones, and tablets held upright: the grid (pages.css)
 
 // Knobs, in design px (× u) and ms, from the board
 const DRIFT = 16; // px per second, top row
@@ -33,6 +35,9 @@ const FAR = 700; // where the hidden ones wait, beyond the edges
 const CARD_R = 40;
 const SLIDE_R = 48;
 const T = { grow: 620, reveal: 240, flyBack: 520 };
+const DRAG_START = 6; // px a pointer must travel before a press becomes a drag (until then it is still a click)
+const COAST = 3.2; // how quickly a flick slows down (per second)
+const SWIPE = 48; // px a swipe must travel to turn the carousel
 
 const controllers = new WeakMap(); // page element -> controller
 
@@ -41,8 +46,8 @@ const aspect = (i) => (tall(i) ? 3 / 4 : 4 / 3);
 
 // How wide each is shown, for picking a file (src/ui/image.js): a card is about a third of the screen on the rows (half
 // on a phone's grid); the carousel photo about half (nearly all of a phone).
-const CARD_SIZES = '(max-width: 720px) 48vw, 32vw';
-const SLIDE_SIZES = '(max-width: 720px) 90vw, 55vw';
+const CARD_SIZES = '(max-width: 720px) 48vw, ((max-width: 1100px) and (orientation: portrait)) 32vw, 32vw';
+const SLIDE_SIZES = '(max-width: 720px) 90vw, ((max-width: 1100px) and (orientation: portrait)) 90vw, 55vw';
 
 const picture = (photo, alt, sizes) => photoElement({ src: photo.src, alt }, { sizes, draggable: false });
 
@@ -155,6 +160,9 @@ function createPhotos(page) {
 
   // ---- the drift --------------------------------------------------------------------
   let off = 0;
+  let shift = 0; // px the visitor has moved the rows by hand (drag / wheel), on top of the drift
+  let vel = 0; // px per second the rows are still coasting at after a flick
+  let dragging = false;
   let spd = 1;
   let armed = !canHover; // the pointer has moved since the page opened (it's usually resting where "photos" was clicked)
   let frame = 0;
@@ -182,7 +190,8 @@ function createPhotos(page) {
         row.el.style.transform = '';
         return;
       }
-      const x = ((off * ROW_SPEED[k] * u) % row.width) - row.width + ROW_SHIFT[k] * u;
+      const travelled = off * ROW_SPEED[k] * u + shift;
+      const x = (((travelled % row.width) + row.width) % row.width) - row.width + ROW_SHIFT[k] * u;
       row.el.style.transform = `translate3d(${x.toFixed(2)}px, 0, 0)`;
     });
   }
@@ -191,16 +200,23 @@ function createPhotos(page) {
     frame = requestAnimationFrame(tick);
     const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
     last = now;
-    if (narrow.matches || reducedMotion) return;
-    const want = open ? 0 : 1;
+    if (narrow.matches) return;
+    const want = open || dragging || reducedMotion ? 0 : 1;
     spd += (want - spd) * Math.min(1, dt * EASE_RATE);
     off += dt * spd * DRIFT;
+    if (!dragging && vel) {
+      shift += vel * dt;
+      vel *= Math.exp(-COAST * dt);
+      if (Math.abs(vel) < 4) vel = 0;
+    }
     placeRows();
   }
 
   function start() {
     measure();
     off = 0;
+    shift = 0;
+    vel = 0;
     spd = 1;
     last = 0;
     placeRows();
@@ -403,6 +419,7 @@ function createPhotos(page) {
   });
 
   layer.addEventListener('click', (event) => {
+    if (swiped) return;
     const slide = event.target.closest('.carousel__photo');
     if (slide) {
       const d = place(Number(slide.dataset.index) - cur);
@@ -411,6 +428,107 @@ function createPhotos(page) {
     }
     close(); // the background
   });
+
+
+  // ---- taking hold of the rows (drag, flick, wheel) ------------------------------------
+  let press = null; // { id, x, from, lastX, lastT }
+  let swallowClick = false; // a drag ends with a click on whatever is under the pointer: don't treat it as opening a photo
+
+  gallery.addEventListener('pointerdown', (event) => {
+    if (narrow.matches || open || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    press = { id: event.pointerId, x: event.clientX, from: shift, lastX: event.clientX, lastT: event.timeStamp };
+    swallowClick = false;
+  });
+
+  gallery.addEventListener('pointermove', (event) => {
+    if (!press || event.pointerId !== press.id) return;
+    const dx = event.clientX - press.x;
+    if (!dragging) {
+      if (Math.abs(dx) < DRAG_START) return;
+      dragging = true;
+      vel = 0;
+      gallery.setPointerCapture(event.pointerId);
+      gallery.classList.add('is-dragging');
+    }
+    const dt = Math.max(1, event.timeStamp - press.lastT) / 1000;
+    vel = vel * 0.6 + ((event.clientX - press.lastX) / dt) * 0.4;
+    press.lastX = event.clientX;
+    press.lastT = event.timeStamp;
+    shift = press.from + dx;
+    placeRows();
+  });
+
+  const release = (event) => {
+    if (!press || event.pointerId !== press.id) return;
+    if (dragging) {
+      swallowClick = true;
+      setTimeout(() => (swallowClick = false), 60);
+      if (event.timeStamp - press.lastT > 90 || reducedMotion) vel = 0; // it stopped before letting go
+      vel = Math.max(-3000, Math.min(3000, vel));
+    }
+    dragging = false;
+    press = null;
+    gallery.classList.remove('is-dragging');
+  };
+  gallery.addEventListener('pointerup', release);
+  gallery.addEventListener('pointercancel', release);
+
+  gallery.addEventListener(
+    'click',
+    (event) => {
+      if (!swallowClick) return;
+      event.stopPropagation();
+      event.preventDefault();
+    },
+    true,
+  );
+
+  gallery.addEventListener(
+    'wheel',
+    (event) => {
+      if (narrow.matches || open) return;
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      if (!delta) return;
+      event.preventDefault();
+      vel = 0;
+      shift -= delta * (event.deltaMode === 1 ? 16 : 1);
+      placeRows();
+    },
+    { passive: false },
+  );
+
+  // ---- swiping the carousel -------------------------------------------------------------
+  let swipe = null;
+  let swiped = false;
+  let wheelAt = 0;
+
+  layer.addEventListener('pointerdown', (event) => {
+    swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    swiped = false;
+  });
+  layer.addEventListener('pointerup', (event) => {
+    if (!swipe || event.pointerId !== swipe.id) return;
+    const dx = event.clientX - swipe.x;
+    const dy = event.clientY - swipe.y;
+    swipe = null;
+    if (Math.abs(dx) < SWIPE || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    swiped = true;
+    setTimeout(() => (swiped = false), 60);
+    go(dx < 0 ? 1 : -1);
+  });
+  layer.addEventListener('pointercancel', () => (swipe = null));
+  layer.addEventListener(
+    'wheel',
+    (event) => {
+      if (!open || closing) return;
+      event.preventDefault();
+      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      if (Math.abs(delta) < 6 || event.timeStamp - wheelAt < 420) return; // one step per gesture, not per wheel tick
+      wheelAt = event.timeStamp;
+      go(delta > 0 ? 1 : -1);
+    },
+    { passive: false },
+  );
 
   window.addEventListener('keydown', (event) => {
     if (!open || closing || page.hidden) return;
