@@ -1,8 +1,8 @@
 /* ---------- edge menu (src/ui/edge-menu.js) ---------- */
 /* Push the cursor against the left / right edge: the pages slide out from it, over a soft dark shade. */
 .edge-menu {
-  --edge-size: clamp(30px, 2.9vw + 8px, 64px);
-  --edge-gap: clamp(28px, 4vw, 80px); /* from the screen edge to the text */
+  --edge-size: clamp(34px, 3.3vw + 10px, 78px);
+  --edge-gap: clamp(40px, 5.6vw, 112px); /* from the screen edge to the text */
   --edge-current: #6fb3e0;
   position: fixed;
   inset: 0;
@@ -45,7 +45,7 @@
   transition-duration: 0.22s;
 }
 
-/* the links: one straight column, evenly spaced, about half the screen tall */
+/* the links: one straight column, evenly spaced down nearly the whole height of the screen */
 .edge-menu__list {
   position: absolute;
   right: 0;
@@ -53,7 +53,8 @@
   flex-direction: column;
   justify-content: space-evenly;
   align-items: flex-end;
-  height: 50vh;
+  height: 88vh;
+  height: 88svh;
   min-height: calc(var(--edge-size) * 6.2);
   margin: 0;
   padding: 0 var(--edge-gap) 0 calc(var(--edge-size) * 1.2);
@@ -85,8 +86,11 @@
   color: #fff;
   text-decoration: none;
   transform-origin: right center;
+  text-shadow: 0 0 22px rgba(0, 0, 0, 0.6);
   transition:
-    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease,
+    text-shadow 0.3s ease,
     color 0.2s ease;
   pointer-events: none;
 }
@@ -101,11 +105,18 @@
 
 .edge-menu__link:hover,
 .edge-menu__link:focus-visible {
-  transform: scale(1.08);
+  transform: scale(1.1);
+  text-shadow: 0 0 26px rgba(255, 255, 255, 0.38);
+}
+
+/* pointing at one link quiets the rest, so the one you're on stands out */
+.edge-menu__list:has(.edge-menu__link:hover) .edge-menu__link:not(:hover) {
+  opacity: 0.45;
 }
 
 .edge-menu__link.is-current {
   color: var(--edge-current);
+  text-shadow: 0 0 24px rgba(111, 179, 224, 0.35);
 }
 
 .edge-menu__link:focus-visible {
@@ -126,10 +137,10 @@
 
 @keyframes edge-float {
   from {
-    transform: translate3d(0, calc(var(--edge-size) * -0.07), 0) rotate(calc(var(--tilt, 2deg) * var(--dir)));
+    transform: translate3d(0, calc(var(--edge-size) * -0.09), 0) rotate(calc(var(--tilt, 2deg) * var(--dir)));
   }
   to {
-    transform: translate3d(0, calc(var(--edge-size) * 0.07), 0) rotate(calc(var(--tilt, 2deg) * var(--dir) * -0.4));
+    transform: translate3d(0, calc(var(--edge-size) * 0.09), 0) rotate(calc(var(--tilt, 2deg) * var(--dir) * -0.4));
   }
 }
 

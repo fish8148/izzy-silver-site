@@ -1,6 +1,6 @@
 /**
  * The edge menu: push the cursor against the left or right edge of the screen and the pages slide out from that edge,
- * in a straight column centred on where the cursor touched (clamped so nothing clips), over a soft dark shade. The page
+ * in a straight column down nearly the full height of the screen, centred on where the cursor touched (clamped so nothing clips), over a soft dark shade. The page
  * you're on is light blue. Move the cursor away from the menu and it folds back after a moment.
  *
  * Mouse / trackpad only: devices without a fine pointer keep the old header menu (see LEGACY_MENU_ENABLED in
@@ -21,7 +21,7 @@ const ITEMS = [
 const TRIGGER = 24; // px from the edge that opens it
 const CLOSE_DELAY = 300; // ms after the cursor leaves before it folds away
 const SLACK = 48; // px around the links that still counts as "in the menu"
-const OPEN = { duration: 400, stagger: 45, travel: 56 };
+const OPEN = { duration: 400, stagger: 50, travel: 64 };
 const CLOSE = { duration: 220 };
 const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
 

@@ -285,6 +285,6 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 
 ## Edge menu
 
-Push the cursor against the left or right edge of the screen (a 24px strip) and the pages slide out from that edge: `homepage`, `about me`, `photos`, `my things`, `say hi`, in a straight column centred on where the cursor touched (clamped so nothing clips), over a dark shade. The page you're on is light blue. It folds away 300ms after the cursor leaves it. Mouse / trackpad only (`src/ui/edge-menu.js`, `src/styles/edge-menu.css`).
+Push the cursor against the left or right edge of the screen (a 24px strip) and the pages slide out from that edge: `homepage`, `about me`, `photos`, `my things`, `say hi`, in a straight column down nearly the full height of the screen (clamped so nothing clips), over a dark shade. The page you're on is light blue. It folds away 300ms after the cursor leaves it. Mouse / trackpad only (`src/ui/edge-menu.js`, `src/styles/edge-menu.css`).
 
 The old header menu (hover the header for a stack of the other pages) is switched off on those devices by `LEGACY_MENU_ENABLED = false` in `src/pages/router.js`, marked `TODO: FLAG FOR REMOVAL: legacy menu`. Touch screens still use it, since the edge menu needs a cursor.
