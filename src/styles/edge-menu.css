@@ -1,0 +1,140 @@
+/* ---------- edge menu (src/ui/edge-menu.js) ---------- */
+/* Push the cursor against the left / right edge: the pages slide out from it, over a soft dark shade. */
+.edge-menu {
+  --edge-size: clamp(30px, 2.9vw + 8px, 64px);
+  --edge-gap: clamp(28px, 4vw, 80px); /* from the screen edge to the text */
+  --edge-current: #6fb3e0;
+  position: fixed;
+  inset: 0;
+  z-index: 40; /* above the floating labels and pages */
+  pointer-events: none; /* never blocks the page while closed (and only the links take clicks while open) */
+}
+
+/* the shade: dark at the edge, fading to nothing toward the middle; no panel, no hard edge */
+.edge-menu__shade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: min(72vw, 1150px);
+  /* dark enough near the links to hide the photos behind them */
+  background: linear-gradient(
+    to left,
+    rgba(14, 14, 14, 0.97) 0%,
+    rgba(14, 14, 14, 0.95) 34%,
+    rgba(14, 14, 14, 0.8) 52%,
+    rgba(14, 14, 14, 0.42) 72%,
+    rgba(14, 14, 14, 0.12) 88%,
+    rgba(14, 14, 14, 0) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.edge-menu[data-side='left'] .edge-menu__shade {
+  right: auto;
+  left: 0;
+  transform: scaleX(-1); /* the same gradient, mirrored */
+}
+
+.edge-menu.is-open .edge-menu__shade {
+  opacity: 1;
+}
+
+.edge-menu:not(.is-open) .edge-menu__shade {
+  transition-duration: 0.22s;
+}
+
+/* the links: one straight column, evenly spaced, about half the screen tall */
+.edge-menu__list {
+  position: absolute;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  align-items: flex-end;
+  height: 50vh;
+  min-height: calc(var(--edge-size) * 6.2);
+  margin: 0;
+  padding: 0 var(--edge-gap) 0 calc(var(--edge-size) * 1.2);
+  list-style: none;
+  /* the float and tilt never spill outside the menu (padding leaves them room inside it) */
+  contain: layout paint;
+}
+
+.edge-menu[data-side='left'] .edge-menu__list {
+  right: auto;
+  left: 0;
+  align-items: flex-start;
+  padding: 0 calc(var(--edge-size) * 1.2) 0 var(--edge-gap);
+}
+
+.edge-menu__item {
+  opacity: 0; /* edge-menu.js slides them in */
+}
+
+.edge-menu__link {
+  display: inline-block;
+  padding: 0.12em 0.2em;
+  font-family: var(--font);
+  font-size: var(--edge-size);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: #fff;
+  text-decoration: none;
+  transform-origin: right center;
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.2s ease;
+  pointer-events: none;
+}
+
+.edge-menu[data-side='left'] .edge-menu__link {
+  transform-origin: left center;
+}
+
+.edge-menu.is-open .edge-menu__link {
+  pointer-events: auto;
+}
+
+.edge-menu__link:hover,
+.edge-menu__link:focus-visible {
+  transform: scale(1.08);
+}
+
+.edge-menu__link.is-current {
+  color: var(--edge-current);
+}
+
+.edge-menu__link:focus-visible {
+  outline: none;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.45);
+}
+
+/* the slow drift: its own duration / phase / tilt per link (set in edge-menu.js); the tilt mirrors on the left */
+.edge-menu__float {
+  --dir: 1;
+  display: inline-block;
+  animation: edge-float var(--float-dur, 6s) ease-in-out var(--float-delay, 0s) infinite alternate;
+}
+
+.edge-menu[data-side='left'] .edge-menu__float {
+  --dir: -1;
+}
+
+@keyframes edge-float {
+  from {
+    transform: translate3d(0, calc(var(--edge-size) * -0.07), 0) rotate(calc(var(--tilt, 2deg) * var(--dir)));
+  }
+  to {
+    transform: translate3d(0, calc(var(--edge-size) * 0.07), 0) rotate(calc(var(--tilt, 2deg) * var(--dir) * -0.4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-menu__float {
+    animation: none;
+  }
+}

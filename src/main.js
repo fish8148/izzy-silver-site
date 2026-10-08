@@ -5,12 +5,14 @@ import './styles/hero.css';
 import './styles/floaters.css';
 import './styles/party.css';
 import './styles/pages.css';
+import './styles/edge-menu.css';
 
 import { createInteractMenu } from './ui/interact-menu.js';
 import { createPageRouter, pages } from './pages/index.js';
 import { createNametag } from './ui/nametag.js';
 import { createSway } from './ui/sway.js';
 import { createScrollFade } from './ui/scroll-fade.js';
+import { createEdgeMenu } from './ui/edge-menu.js';
 
 // UI that doesn't need WebGL is set up immediately, so the labels work from first paint.
 const nametag = createNametag(document.getElementById('nametag'));
@@ -24,6 +26,7 @@ const hero = document.getElementById('top');
 const router = createPageRouter({ hero, pages });
 hero.addEventListener('page:returning', () => nametag.wake()); // the name floats back in with the home screen
 createScrollFade(hero);
+createEdgeMenu({ router }); // push the cursor against the left / right edge for the pages
 createSway(hero); // on a phone, the labels sway with its movement
 if (import.meta.env.DEV) window.__router = router;
 

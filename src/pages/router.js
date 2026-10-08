@@ -69,6 +69,13 @@ const SLIDE_PX = 40; // how far content travels while sliding in from the left
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const canHover = window.matchMedia('(hover: hover)').matches;
 
+// TODO: FLAG FOR REMOVAL: legacy menu
+// The page menu that pops out of the header (hover / focus / tap it) has been replaced by the edge menu
+// (src/ui/edge-menu.js) on devices with a mouse. It's switched off there, not deleted. Touch screens keep it for now:
+// the edge menu needs a cursor, and touch is out of its scope, so without this they'd have no way between pages.
+const LEGACY_MENU_ENABLED = false;
+const legacyMenu = LEGACY_MENU_ENABLED || !window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
 const held = new Set(); // animations that keep painting their last frame until releaseHeld()
 
 /** Let go of everything `play(..., { hold: true })` was keeping in place. Only call this once it's out of sight. */
@@ -360,6 +367,7 @@ export function createPageRouter({ hero, pages }) {
   }
 
   function openMenu() {
+    if (!legacyMenu) return; // TODO: FLAG FOR REMOVAL: legacy menu
     if (!current || menuOpen || busy) return;
     menuOpen = true;
     clearTimeout(closeTimer);
@@ -823,6 +831,7 @@ export function createPageRouter({ hero, pages }) {
   // ↑ / ↓ (and Home / End) walk the menu in the order it's drawn, top of the stack down to the header. (Tab still goes
   // in page order, which doesn't match the zig-zag.) From the header, ↑ opens the menu if it isn't already.
   hero.addEventListener('keydown', (event) => {
+    if (!legacyMenu) return; // TODO: FLAG FOR REMOVAL: legacy menu
     if (!current || busy || !isMenuMember(event.target)) return;
     const keys = { ArrowUp: -1, ArrowDown: 1, Home: -Infinity, End: Infinity };
     if (!(event.key in keys) || event.altKey || event.ctrlKey || event.metaKey) return;
@@ -983,9 +992,21 @@ export function createPageRouter({ hero, pages }) {
     { passive: true },
   );
 
+  /** Go to page `id`, or home for null, from wherever we are (the edge menu's links). False if mid-transition. */
+  function go(id) {
+    if (busy) return false;
+    if (!id) return current ? close() : false;
+    if (!pages[id]) return false;
+    return current ? switchTo(id) : open(id);
+  }
+
   return {
     open,
     close,
+    go,
+    get currentId() {
+      return current?.id ?? null;
+    },
     get isOpen() {
       return !!current || busy;
     },

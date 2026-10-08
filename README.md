@@ -282,3 +282,9 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 - **Page columns** (About etc.) scroll inside the page; a soft fade at the top / bottom shows when there is more (`src/ui/scroll-fade.js`).
 - A landscape phone no longer forces the whole page to scroll: the hero fits the screen and the content scrolls inside it.
 - **Scrolling through the pages**: from the home screen, scroll down (or swipe up) to go about → say hi → photos → my things; scroll up to go back, and up from about returns home. A page that itself scrolls only moves on once you reach its end. One page per gesture. (`scrollStep` in `src/pages/router.js`; the order is `SCROLL_ORDER`.)
+
+## Edge menu
+
+Push the cursor against the left or right edge of the screen (a 24px strip) and the pages slide out from that edge: `homepage`, `about me`, `photos`, `my things`, `say hi`, in a straight column centred on where the cursor touched (clamped so nothing clips), over a dark shade. The page you're on is light blue. It folds away 300ms after the cursor leaves it. Mouse / trackpad only (`src/ui/edge-menu.js`, `src/styles/edge-menu.css`).
+
+The old header menu (hover the header for a stack of the other pages) is switched off on those devices by `LEGACY_MENU_ENABLED = false` in `src/pages/router.js`, marked `TODO: FLAG FOR REMOVAL: legacy menu`. Touch screens still use it, since the edge menu needs a cursor.
