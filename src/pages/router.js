@@ -896,6 +896,93 @@ export function createPageRouter({ hero, pages }) {
     open(initial, { instant: true, fromHistory: true });
   }
 
+
+  // ---- scrolling through the pages ------------------------------------------------------------------------------
+  // Scroll down (wheel, trackpad, or a swipe up) to go home -> about -> say hi -> photos -> my things; scroll up to go
+  // back. Inside a page that scrolls (a tall column, the phone photo grid) it only moves on once you've reached that
+  // end and scroll again. One page per gesture, so a trackpad's coasting tail doesn't carry you on.
+  const SCROLL_ORDER = ['about', 'say-hi', 'photos', 'my-things'];
+
+  function scrollStep(dir) {
+    if (busy || menuOpen) return;
+    const at = current ? SCROLL_ORDER.indexOf(current.id) : -1;
+    const next = at + dir;
+    if (next >= SCROLL_ORDER.length) return;
+    if (next < 0) {
+      if (current) close();
+    } else if (!current) open(SCROLL_ORDER[next]);
+    else switchTo(SCROLL_ORDER[next]);
+  }
+
+  /** The vertical scroller under `el` that has somewhere to go, with which of its ends you're at. */
+  function scrollEdges(el) {
+    for (let n = el; n && n !== hero; n = n.parentElement) {
+      if (!n.matches?.('.page__col, .gallery') || getComputedStyle(n).overflowY !== 'auto') continue;
+      const room = n.scrollHeight - n.clientHeight;
+      if (room > 4) return { top: n.scrollTop <= 2, bottom: n.scrollTop >= room - 2 };
+    }
+    return { top: true, bottom: true };
+  }
+
+  /** Can a scroll in direction `dir` (1 down, -1 up) that began on `target` move to another page? */
+  function canScrollThrough(target, dir) {
+    if (busy || menuOpen || !(target instanceof Element)) return false;
+    if (target.closest('.carousel:not([hidden]), .interact-menu, canvas:not(.hero__canvas)')) return false;
+    return scrollEdges(target)[dir > 0 ? 'bottom' : 'top'];
+  }
+
+  let wheelAcc = 0;
+  let wheelAt = 0;
+  let wheelOk = false;
+  let wheelLock = 0;
+  hero.addEventListener(
+    'wheel',
+    (event) => {
+      if (event.ctrlKey || !event.deltaY || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+      const dir = Math.sign(event.deltaY);
+      const fresh = event.timeStamp - wheelAt > 220 || dir !== Math.sign(wheelAcc || dir); // a new gesture, not a continuing one
+      wheelAt = event.timeStamp;
+      if (fresh) {
+        wheelAcc = 0;
+        wheelOk = event.timeStamp > wheelLock && canScrollThrough(event.target, dir);
+      }
+      if (!wheelOk) return;
+      wheelAcc += event.deltaY * (event.deltaMode === 1 ? 16 : 1);
+      if (Math.abs(wheelAcc) < 70) return;
+      wheelOk = false;
+      wheelLock = event.timeStamp + 700;
+      wheelAcc = 0;
+      scrollStep(dir);
+    },
+    { passive: true },
+  );
+
+  let swipe = null;
+  hero.addEventListener(
+    'touchstart',
+    (event) => {
+      const touch = event.touches[0];
+      swipe = event.touches.length === 1 && event.target instanceof Element ? { x: touch.clientX, y: touch.clientY, target: event.target, edges: scrollEdges(event.target) } : null;
+    },
+    { passive: true },
+  );
+  hero.addEventListener(
+    'touchend',
+    (event) => {
+      const start = swipe;
+      swipe = null;
+      if (!start || event.touches.length) return;
+      const touch = event.changedTouches[0];
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (Math.abs(dy) < 80 || Math.abs(dy) < Math.abs(dx) * 1.6) return;
+      const dir = dy < 0 ? 1 : -1; // a swipe up scrolls down
+      if (start.target.closest('.carousel:not([hidden]), .interact-menu, canvas:not(.hero__canvas)')) return;
+      if (start.edges[dir > 0 ? 'bottom' : 'top']) scrollStep(dir);
+    },
+    { passive: true },
+  );
+
   return {
     open,
     close,

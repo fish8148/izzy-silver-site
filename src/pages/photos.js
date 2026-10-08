@@ -486,12 +486,11 @@ function createPhotos(page) {
   gallery.addEventListener(
     'wheel',
     (event) => {
-      if (narrow.matches || open) return;
-      const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-      if (!delta) return;
+      // sideways only: a plain wheel (vertical) scrolls on to the next page (router.js), and dragging moves the rows too
+      if (narrow.matches || open || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
       event.preventDefault();
       vel = 0;
-      shift -= delta * (event.deltaMode === 1 ? 16 : 1);
+      shift -= event.deltaX * (event.deltaMode === 1 ? 16 : 1);
       placeRows();
     },
     { passive: false },
