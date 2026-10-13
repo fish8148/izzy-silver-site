@@ -130,8 +130,7 @@ export function createEdgeMenu({ router }) {
     list.style.top = `${Math.round(top)}px`;
   }
 
-  function markCurrent() {
-    const cur = router.currentId;
+  function markCurrent(cur = router.currentId) {
     for (const { link, id } of items) {
       const here = id === cur;
       link.classList.toggle('is-current', here);
@@ -287,6 +286,7 @@ export function createEdgeMenu({ router }) {
   return {
     show,
     hide,
+    markCurrent,
     beginPull,
     endPull,
     items,

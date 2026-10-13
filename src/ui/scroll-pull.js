@@ -20,7 +20,11 @@ export const PULL = {
   distance: 600, // px of wheel past the edge for a full pull
   springBack: 0.8, // let go early: the pull is multiplied by this every frame until it's gone
   releaseDelay: 200, // ms after the last wheel event before it springs back
-  cooldown: 700, // ms after a page change when scrolling is ignored (so trackpad coasting can't change page again)
+  cooldown: 150, // ms after a page change when scrolling is ignored (a brief breath before the next pull can start)
+  chainAt: 0.5, // keep scrolling through a page change and it carries on: this much of a full pull, scrolled meanwhile,
+  //              goes straight on to the page after (and so on, for as far as you scroll)
+  chainDuration: 650, // ms: a page change that carries straight on is quicker
+  menuStep: 90, // px of scroll per page while the edge menu is open by hand (scrolling then just walks the list)
   seamStart: 0.35, // the first part of the pull only stretches the seam
   menuOpen: 0.5, // ...then the menu opens over this much of the rest
   rollLag: 0.3, // ...and the roll waits this much of the rest before starting
@@ -63,6 +67,7 @@ export function createScrollPull({ router, menu, hero }) {
   let releaseTimer = 0;
   let raf = 0;
   let rests = null; // each label's resting centre while the pull has the menu (null: it doesn't)
+  let carry = 0; // px scrolled on (in pullDir) while a page change was playing, to carry on with once it lands
 
   // ---- where we are ------------------------------------------------------------------------------------------------
   const here = () => ORDER.indexOf(router.currentId);
@@ -96,15 +101,23 @@ export function createScrollPull({ router, menu, hero }) {
    * `scroller` is the page's own scroller under the input, if any.
    */
   function feed(dy, scroller) {
-    if (going || performance.now() < cooldownUntil) return true;
-    if (menu.isOpen || router.isBusy) return false; // the menu is open by hand, or a page is still arriving
+    if (menu.isOpen && !going && !pull) return menuScroll(dy);
+    if (going) {
+      // still scrolling while the page changes: save it up to carry on with (turning back cancels it)
+      carry = Math.sign(dy) === pullDir ? carry + Math.abs(dy) : Math.max(0, carry - Math.abs(dy));
+      return true;
+    }
+    if (performance.now() < cooldownUntil) return true;
+    if (router.isBusy) return false; // a page is still arriving
     const dir = Math.sign(dy);
     if (!dir) return false;
     const atEdge = dir > 0 ? edges(scroller).bottom : edges(scroller).top;
     const toward = neighbour(dir) !== undefined;
     if (toward && atEdge && (pull === 0 || dir === pullDir)) {
       if (!rests) rests = menu.beginPull();
-      pull = Math.min(1, pull + Math.abs(dy) / PULL.distance);
+      const reach = pull + Math.abs(dy) / PULL.distance;
+      carry = Math.max(0, reach - 1) * PULL.distance; // a big flick that overshoots a full pull keeps the rest
+      pull = Math.min(1, reach);
       pullDir = dir;
     } else if (pull > 0) {
       pull = Math.max(0, pull - Math.abs(dy) / PULL.distance); // turning back eats the pull first
@@ -128,7 +141,9 @@ export function createScrollPull({ router, menu, hero }) {
     'wheel',
     (event) => {
       if (event.ctrlKey || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return; // pinch-zoom, or sideways
-      if (!(event.target instanceof Element) || event.target.closest('.carousel:not([hidden]), .interact-menu')) return;
+      if (!(event.target instanceof Element)) return;
+      // (with the edge menu open, scrolling anywhere walks the menu; otherwise the viewer and interact menu keep theirs)
+      if (!menu.isOpen && event.target.closest('.carousel:not([hidden]), .interact-menu')) return;
       const dy = event.deltaY * (event.deltaMode === 1 ? 33 : 1);
       const scroller = scrollerFor(event.target);
       if (feed(dy, scroller)) event.preventDefault();
@@ -159,6 +174,48 @@ export function createScrollPull({ router, menu, hero }) {
     }
   });
 
+  // ---- scrolling with the edge menu open: walk the list, one page per step ---------------------------------------
+  let menuAcc = 0;
+  let menuTarget = -1; // where the scrolling has got to (an index into ORDER), while the router catches up
+  let pumping = false;
+
+  function menuScroll(dy) {
+    if (Math.sign(dy) !== Math.sign(menuAcc)) menuAcc = 0;
+    menuAcc += dy;
+    if (!pumping) menuTarget = here(); // (the router has caught up: start from where it is)
+    let moved = false;
+    while (Math.abs(menuAcc) >= PULL.menuStep) {
+      const dir = Math.sign(menuAcc);
+      menuAcc -= dir * PULL.menuStep;
+      const next = Math.max(0, Math.min(ORDER.length - 1, menuTarget + dir));
+      if (next !== menuTarget) {
+        menuTarget = next;
+        moved = true;
+      }
+    }
+    if (moved) {
+      menu.markCurrent(ORDER[menuTarget]); // the blue moves straight away; the page follows as soon as it can
+      pump();
+    }
+    return true;
+  }
+
+  /** Bring the router to the page the menu is pointing at, a step at a time if it's mid-transition. */
+  function pump() {
+    if (pumping) return;
+    pumping = true;
+    const step = () => {
+      const want = ORDER[menuTarget];
+      if (menuTarget < 0 || router.currentId === want) {
+        pumping = false;
+        return;
+      }
+      if (!router.isBusy) router.go(want);
+      requestAnimationFrame(step);
+    };
+    step();
+  }
+
   // Hovering the edge opens the menu by hand: that cancels a pull in progress (but can't interrupt a page change)
   menu.onBeforeShow = () => {
     if (going) return false;
@@ -183,6 +240,8 @@ export function createScrollPull({ router, menu, hero }) {
 
   /** Back to rest: the menu handed back, the page where it was. */
   function reset() {
+    menuTarget = -1;
+    menuAcc = 0;
     pull = 0;
     t = 0;
     going = false;
@@ -250,15 +309,19 @@ export function createScrollPull({ router, menu, hero }) {
   }
 
   // ---- the page change ---------------------------------------------------------------------------------------------
-  function commit() {
+  function commit({ quick = false } = {}) {
     const to = neighbour(pullDir);
-    if (to === undefined) return reset();
+    if (to === undefined) {
+      carry = 0;
+      return reset();
+    }
     const dir = pullDir;
+    if (!rests) rests = menu.beginPull();
     going = true;
     pull = 1;
     t = 0;
     menu.locked = true;
-    const duration = reducedMotion ? 200 : PULL.duration;
+    const duration = reducedMotion ? 200 : quick ? PULL.chainDuration : PULL.duration;
     const hold = reducedMotion ? 1 : PULL.hold;
     const start = performance.now();
     let swapped = false;
@@ -282,10 +345,26 @@ export function createScrollPull({ router, menu, hero }) {
         raf = requestAnimationFrame(step);
         return;
       }
-      cooldownUntil = performance.now() + PULL.cooldown;
+      const extra = carry;
+      carry = 0;
       reset();
+      carryOn(dir, extra);
     };
     raf = requestAnimationFrame(step);
+  }
+
+  /** The page has landed with `amount` px of scrolling still to come: go straight on, or scroll into the page. */
+  function carryOn(dir, amount) {
+    if (amount >= PULL.chainAt * PULL.distance && neighbour(dir) !== undefined) {
+      pullDir = dir;
+      carry = amount - PULL.distance; // (what's left after this one goes on to the next)
+      if (carry < 0) carry = 0;
+      commit({ quick: true });
+      return;
+    }
+    cooldownUntil = performance.now() + PULL.cooldown;
+    const scroller = scrollerFor(null);
+    if (amount > 0 && scroller) scroller.scrollTop += dir * amount;
   }
 
   return {
