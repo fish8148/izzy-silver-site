@@ -205,9 +205,11 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 
 ## Editing content
 
-- **About Me:** `src/data/about.js` (two photos + one entry per paragraph; each paragraph is its own staggered block).
-  The layout (photo sizes, text width) is the About section of `pages.css`; the text width is in
-  `em` so the lines break in the same places at any screen size.
+- **About Me:** `src/data/about.js`: the intro paragraphs, the portrait, the resume link (`resume`, opened in a new tab;
+  put the file at `public/resume.pdf` or use a full URL) and the highlights (`name`, `role`, `description`, `photos`). The
+  page is the "Editorial" design (14a): the intro set large beside the portrait, then each highlight with its name pinned on
+  the left while its photos (wide, half, half, wide, repeating) scroll past on the right, then a large resume link. Empty
+  descriptions and photo lists show nothing. The look is the About section of `pages.css`; under 960px it's one column.
 - **Photos:** `src/data/photo-trips.js`, grouped by trip: each trip has a `slug`, a lowercase `name`, a `description`
   (1–2 sentences, or `''` for none) and its `photos`, each `{ src, shape, caption, alt? }` (`src` is the name in
   `public/photos` without size/extension; `shape` is `'wide'` or `'tall'`, as `npm run prep:photos` prints it). The page is

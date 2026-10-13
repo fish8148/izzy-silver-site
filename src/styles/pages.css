@@ -79,112 +79,226 @@
   color: var(--muted);
 }
 
-/* ---------- about me ---------- */
-.about-cards {
-  --card-gap: clamp(14px, 2.6vw, 44px);
-  --card-h: clamp(150px, 27vh, 400px);
-  display: flex;
-  gap: var(--card-gap);
-  /* the two cards (3:4 + 4:3) share one height: total width = height x (3/4 + 4/3) + gap */
-  width: min(100%, calc(var(--card-h) * 2.0833 + var(--card-gap)));
+/* ---------- about me (the "Editorial" design, 14a) ---------- */
+/* One scrolling page (about.js): the intro beside a portrait, then the highlights, each with its name pinned on the left
+   while its photos scroll past, then a large resume link. */
+.page--about {
+  --about-meta: #5a5a5a;
+  --about-desc: #8f8f8f;
+  --about-line: #262626;
+  --about-link: #6fb3e0;
+  --about-link-hover: #a9d3ef;
+  background: #000;
+  transition: background-color 0.4s ease;
 }
 
-.about-card {
-  position: relative;
+@starting-style {
+  .page--about {
+    background-color: transparent; /* fades to black as the page opens, instead of snapping */
+  }
+}
+
+.about {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 0 56px;
+  outline: none;
+  pointer-events: auto;
+}
+
+.about::-webkit-scrollbar {
+  display: none;
+}
+
+.about p,
+.about h2,
+.about figure {
   margin: 0;
-  overflow: hidden;
-  border-radius: var(--card-radius);
-  background: var(--bg-raised);
 }
 
-.about-card--portrait {
-  flex: 9 1 0;
-  aspect-ratio: 3 / 4;
-}
-
-.about-card--wide {
-  flex: 16 1 0;
-  aspect-ratio: 4 / 3;
-}
-
-/* a resized photo comes wrapped in a <picture> (src/ui/image.js); it lays out as if the <img> were there on its own */
-.about-card picture,
-.gallery__card picture,
-.carousel__photo picture {
-  display: contents;
-}
-
-.about-card img {
+.about img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.about-text {
-  margin-top: clamp(24px, 5.5vh, 64px);
+.about picture {
+  display: contents;
 }
 
-.about-text p {
-  margin: 0 0 1.05em;
-  font-size: var(--page-text);
-  line-height: 1.2;
-  letter-spacing: -0.012em;
+.about-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 64px;
+  align-items: center;
+  min-height: 100%;
+  padding: 72px 0;
 }
 
-/* Desktop and tablet: the photos start at the left margin, sized in cqw / cqh (a % of this page) like the photos page.
-   Phones keep the compact column. */
-@media (min-width: 721px) {
-  .page--about {
-    container-type: size;
-    --about-h: min(22.5cqw, 34.6cqh); /* photo height: 3:4 portrait + 4:3 wide, side by side */
-    --about-gap: clamp(16px, 2.85cqw, 54px);
-    --photo-radius: clamp(22px, 3.3cqw, 64px);
+.about-intro__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+.about-intro__text p {
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: #fff;
+  text-wrap: pretty;
+}
+
+.about-intro__resume,
+.about-closing__resume {
+  display: inline-block;
+  color: var(--about-link);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.about-intro__resume:hover,
+.about-closing__resume:hover {
+  color: var(--about-link-hover);
+}
+
+.about-intro__resume {
+  margin-top: 8px;
+  font-size: 20px;
+}
+
+.about-intro__portrait {
+  height: 440px;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--bg-raised);
+}
+
+.about-highlight {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 32px;
+  padding: 48px 0;
+  border-top: 1px solid var(--about-line);
+}
+
+.about-highlight__side {
+  position: sticky;
+  top: 48px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.about-highlight__meta {
+  display: flex;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--about-meta);
+}
+
+.about-highlight__name {
+  font-size: 52px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  color: #fff;
+}
+
+.about-highlight__desc {
+  margin-top: 8px !important;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--about-desc);
+  text-wrap: pretty;
+}
+
+.about-highlight__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 210px;
+  gap: 20px;
+}
+
+.about-highlight__photo {
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--bg-raised);
+}
+
+.about-highlight__photo.is-wide {
+  grid-column: span 2;
+}
+
+.about-closing {
+  padding: 72px 0 96px;
+  border-top: 1px solid var(--about-line);
+}
+
+.about-closing__resume {
+  font-size: 52px;
+  line-height: 1.1;
+}
+
+@media (max-width: 959px) {
+  .about {
+    padding: 0 clamp(16px, 5vw, 56px);
   }
 
-  .page--about .page__col {
-    top: 19.5cqh;
-    left: calc(7cqw - var(--bleed));
-    width: calc(66cqw + var(--bleed));
+  .about-intro {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    min-height: 0;
+    padding: max(32px, env(safe-area-inset-top)) 0 56px;
   }
 
-  .about-cards {
-    gap: var(--about-gap);
-    width: auto;
+  .about-intro__portrait {
+    order: -1; /* above the text */
+    height: auto;
+    aspect-ratio: 340 / 440;
+    max-height: 60vh;
   }
 
-  .about-card,
-  .about-card--portrait,
-  .about-card--wide {
-    flex: none;
-    height: var(--about-h);
-    aspect-ratio: auto;
-    border-radius: var(--photo-radius);
+  .about-intro__text p {
+    font-size: clamp(24px, 5vw, 34px);
   }
 
-  .about-card--portrait {
-    width: calc(var(--about-h) * 3 / 4);
+  .about-highlight {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .about-card--wide {
-    width: calc(var(--about-h) * 4 / 3);
+  .about-highlight__side {
+    position: static;
   }
 
-  .about-text {
-    margin-top: 4.5cqh;
-    margin-left: 0.8cqw; /* the design sets the text a touch in from the photo edge */
-    max-width: 24.9em; /* in em, so the lines wrap where the design does ("...engineering" / "...design,") at every size */
-    font-size: clamp(17px, 1.9cqw, 40px);
+  .about-highlight__name {
+    font-size: clamp(36px, 7vw, 52px);
   }
 
-  .about-text p {
-    font-size: inherit;
-    line-height: 1.4;
-    margin-bottom: 1.4em; /* one blank line between paragraphs */
+  .about-highlight__grid {
+    grid-auto-rows: clamp(140px, 28vw, 210px);
   }
 
-  .about-text p:last-child {
-    margin-bottom: 0;
+  .about-closing__resume {
+    font-size: clamp(36px, 7vw, 52px);
+  }
+}
+
+@media (max-width: 559px) {
+  .about-highlight__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .about-highlight__photo.is-wide {
+    grid-column: auto;
   }
 }
 
@@ -486,9 +600,8 @@
   -webkit-user-drag: none;
 }
 
-/* the glassy edge: a hairline all round and a bright lip along the top (the About photos wear it too) */
-.gallery__rim,
-.about-card__rim {
+/* the glassy edge: a hairline all round and a bright lip along the top */
+.gallery__rim {
   position: absolute;
   inset: 0;
   border-radius: inherit;
@@ -496,15 +609,6 @@
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.14),
     inset 0 2px 1px rgba(255, 255, 255, 0.22);
-}
-
-/* the About photos keep their softer, fuller glass edge */
-.about-card__rim {
-  box-shadow:
-    inset 0 1.5px 1px rgba(255, 255, 255, 0.6),
-    inset 0 -2px 4px rgba(255, 255, 255, 0.3),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
-    inset 0 14px 20px -12px rgba(255, 255, 255, 0.28);
 }
 
 /* hovering a photo fades in a dark gradient with its description. (.is-armed: the mouse has moved since the page
