@@ -1,27 +1,18 @@
 /**
- * Page transitions and the page menu. Plain DOM + Web Animations API, separate from the Three.js scene.
+ * Page transitions. Plain DOM + Web Animations API, separate from the Three.js scene.
  *
- * Every page's header lives in the same spot, bottom-right (`aside-bottom` in pages.css). Hovering or focusing it
- * reveals the other pages — plus a teal "homepage" entry — stacked above it in a fixed order (see MENU_ORDER below),
- * indented in a zig-zag. It's built from the SAME label elements that float on the home screen: the router just tags
- * the other three with `.is-menu-item` (small, collapsed onto the header, invisible) the moment a page opens, so
- * they're primed to pop out on hover.
+ * Pages have no header and no menu of their own: you move between them with the edge menu (src/ui/edge-menu.js), by
+ * scrolling past a page's end (src/ui/scroll-pull.js), by swiping on a touch screen (below), or with the browser's
+ * back / forward and Esc.
  *
  * Opening a page from home (click one of the floating labels):
- *   1. the clicked label freezes where it is and becomes the page header: it grows and travels to the bottom-right spot
- *   2. the character (+ nametag, floor glow) fades out; every other label — "interact" included — slides off through
- *      whichever screen edge it's nearest to, fading as it goes
- *   3. once off-screen, those same labels are silently repositioned onto the (invisible) page menu stack, ready for a hover
- *   4. the page's content blocks fade + slide in from the left, one after another
- * Going home again ("homepage" in the menu, Esc, or the browser's back button) reverses the
- * shape of that trip: the header — and, if the menu happened to be open, its whole stack — slides off the right edge,
- * then every home label (interact + the four pages) drifts back in from its nearest edge, staggered.
+ *   1. the character (+ nametag, floor glow) fades out, and every label — "interact" and the clicked one included —
+ *      slides off through whichever screen edge it's nearest to, fading as it goes
+ *   2. the page's content blocks fade + slide in from the left, one after another
+ * Going home again reverses it: the content leaves, then the character fades back up and every home label drifts back in
+ * from its nearest edge, staggered. Switching straight from one page to another crossfades their content.
  *
- * Clicking another entry in the open menu swaps pages without ever going home: the picked label grows into the header,
- * the old header shrinks down into its new stack slot, and the rest of the stack rearranges around them. The menu stays
- * open the whole time, so several switches can happen back to back.
- *
- * A page is just { render(el), blocks(el), stagger?, header?, exit?, onShow?(el), onHide?(el), back?(el) } — see pages/index.js.
+ * A page is just { render(el), blocks(el), stagger?, exit?, onShow?(el), onHide?(el), back?(el) } — see pages/index.js.
  * `exit` says how the content leaves: { targets(el) -> elements in order, stagger, duration, slide, easing }.
  * By default that's `blocks` in reverse, sliding left; Photos fades whatever is on screen, left to right, instead.
  * `onShow` runs as the page appears and `onHide` as it starts to leave (for pages that run something, like the photo drift).
@@ -29,8 +20,8 @@
  * `back` gets the first press of Esc: a page with a sub-view (my things has one open object) returns true
  * once it has stepped out of it, and only when it returns nothing does the press close the page.
  * The router fires `page:opening | opened | closing | closed | returning` on the hero element so other
- * systems (e.g. the 3D scene) can pause / resume without the router knowing about them. Switching pages via the menu
- * fires none of these — the hero never stops being "a page is open" during a switch.
+ * systems (e.g. the 3D scene) can pause / resume without the router knowing about them. Switching pages fires none of
+ * these — the hero never stops being "a page is open" during a switch.
  */
 
 const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -43,38 +34,17 @@ const T = {
   exit: 420, // home labels sliding off their nearest edge, on the way to a page
   enter: 650, // each content block sliding + fading in
   stagger: 200, // default gap between blocks
-  header: 560, // the header label growing, on the way to a page
   contentOut: 300, // content leaving to the left
   exitSpan: 700, // however many things leave, the run of staggered starts is squeezed to fit inside this
   homeIn: 900, // the character + floor glow fading up, and each home label drifting back in, on the way home
   edgeStagger: 70, // gap between each home label drifting in
-  menuOpen: 420, // a stack item popping out of the header
-  menuOpenStagger: 45,
-  menuClose: 300, // a stack item folding back into the header
-  menuCloseStagger: 30,
-  menuCloseGrace: 260, // how long the pointer can be away before the menu actually closes
-  swap: 460, // switching pages: picked item -> header, old header -> its new stack slot
-  swapDelay: 20, // ...the old header waits this long before it starts (the picked item leads)
-  swapRipple: 380, // switching pages: everyone else in the stack re-settling into their new slot
-  swapRippleBase: 30,
-  swapRippleStagger: 20,
   switchOut: 180, // switching pages: the old page's content fading out...
   switchIn: 380, // ...while the new page's fades + slides in, at the same time
   switchSpan: 240, // however many blocks come in, their staggered starts fit inside this
-  slideOff: 420, // the header (+ open stack) sliding off the right edge, on the way home
-  slideOffStagger: 40,
 };
 const SLIDE_PX = 40; // how far content travels while sliding in from the left
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const canHover = window.matchMedia('(hover: hover)').matches;
-
-// TODO: FLAG FOR REMOVAL: legacy menu
-// The page menu that pops out of the header (hover / focus / tap it) has been replaced by the edge menu
-// (src/ui/edge-menu.js) on devices with a mouse. It's switched off there, not deleted. Touch screens keep it for now:
-// the edge menu needs a cursor, and touch is out of its scope, so without this they'd have no way between pages.
-const LEGACY_MENU_ENABLED = false;
-const legacyMenu = LEGACY_MENU_ENABLED || !window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 const held = new Set(); // animations that keep painting their last frame until releaseHeld()
 
@@ -121,13 +91,8 @@ async function play(el, keyframes, { hold = false, ...options } = {}) {
 }
 
 // For travel where "no motion" is itself a reasonable reduced-motion fallback (an element that fades in or out
-// somewhere off-screen might as well just fade in place). Never used for a stack slot: those positions are the point.
+// somewhere off-screen might as well just fade in place).
 const move = (x, y) => (reducedMotion ? 'none' : `translate(${x}px, ${y}px)`);
-const moveTo = (x, y) => `translate(${x}px, ${y}px)`;
-// The element's live painted transform (a matrix, valid mid-animation), not the last value `play()` committed — used
-// as a "from" keyframe so a stack item that's interrupted mid-animation is picked up from where it visually is, not
-// from a stale inline style.
-const paintedTransform = (el) => getComputedStyle(el).transform;
 
 /** Cancel the router's own animations on an element (not its CSS animations / transitions). Read what you need first. */
 function stopAnimations(el) {
@@ -144,20 +109,13 @@ function edgeExit(el) {
   return { x, y: 0 };
 }
 
-/** How far right a label has to travel to clear the screen from wherever it currently is. */
-function rightExit(el) {
-  const r = el.getBoundingClientRect();
-  return { x: window.innerWidth - r.left + 60, y: 0 };
-}
-
-// The page menu's fixed order, topmost first, ending at the header. "__home__" is the "go home" entry, not a real page.
-const MENU_ORDER = ['__home__', 'say-hi', 'photos', 'my-things', 'about'];
 // The order home labels drift back in, on the way home.
 const RETURN_ORDER = ['interact', 'about', 'say-hi', 'photos', 'my-things'];
 
 export function createPageRouter({ hero, pages }) {
   const floaters = [...hero.querySelectorAll('.floater')];
   const interactFloater = hero.querySelector('#interact-toggle').closest('.floater');
+  const interactLabel = interactFloater.querySelector('.floater__label');
   const characterLayer = ['.hero__canvas', '.nametag', '.hero__floor'].map((s) => hero.querySelector(s)).filter(Boolean);
   // The nametag positions itself every frame (an inline transform) and already fades through its own CSS transition,
   // so on the way back it's handled separately from the rest.
@@ -167,102 +125,23 @@ export function createPageRouter({ hero, pages }) {
   const pageEl = (id) => hero.querySelector(`.page[data-page="${id}"]`);
   const labelFor = (id) => hero.querySelector(`.floater__label[data-page="${id}"]`);
 
-  // ---- the "homepage" menu entry: not a real page, just a teal button that lives in the stack -----------------------
-  const homeFloater = document.createElement('div');
-  homeFloater.className = 'floater is-menu-item';
-  homeFloater.style.visibility = 'hidden';
-  const homeLabel = document.createElement('button');
-  homeLabel.type = 'button';
-  homeLabel.className = 'floater__label floater__label--accent';
-  homeLabel.dataset.home = '';
-  homeLabel.style.animation = 'none'; // it never sits at a natural floating spot, so it never needs the bob
-  homeLabel.textContent = 'homepage';
-  homeFloater.append(homeLabel);
-  hero.querySelector('.floaters').append(homeFloater);
-
-  const stackLabel = (id) => (id === '__home__' ? homeLabel : labelFor(id));
-  const stackFloater = (id) => stackLabel(id).closest('.floater');
-
-  /** The stack for page `curId`, in fixed order, each with its k (0 = right next to the header, counting up). */
-  function stackEntries(curId) {
-    const ids = MENU_ORDER.filter((id) => id !== curId);
-    const n = ids.length;
-    return ids.map((id, j) => ({ id, k: n - 1 - j }));
-  }
-
-  // Proportions from the Page Menu Board (a 40px header: items 54px above it, 46px apart, every other one 44px in).
-  const STACK = { step: 0, indent: 0, gap: 0 }; // px, recomputed from the header's current size
-  function measureStack(label) {
-    const size = parseFloat(getComputedStyle(label).fontSize);
-    STACK.step = size * 1.15;
-    STACK.indent = size * 1.1;
-    STACK.gap = size * 1.35;
-  }
-  const slotOffset = (k) => ({ x: k % 2 ? STACK.indent : 0, y: -(STACK.gap + k * STACK.step) });
-  const CLOSED_OFFSET = { x: 0, y: 4 }; // where a stack item sits, invisible, folded onto the header
-
-  let current = null; // { id, def, page, floater, label }
+  let current = null; // { id, def, page }
   let busy = false;
-  let menuOpen = false;
-  let closeTimer = null;
   // The history entry we're on, as we last wrote or saw it. (A hash typed into the address bar lands on a fresh entry
   // with no state; this is what it was typed on top of.) State: { page, depth: entries since home, deep: no home behind }.
   let lastState = history.state;
 
-  /**
-   * Size the page's content column: the full width between the margins. On narrow screens it also stops above the header
-   * (bottom-right), so nothing scrolls underneath it; wider layouts place their column beside the header in pages.css.
-   */
-  function layout(page, floater) {
+  /** Size the page's content column: the full width between the margins (wider layouts refine it in pages.css). */
+  function layout(page) {
     const vw = hero.clientWidth;
     const pad = Math.min(140, Math.max(20, vw * 0.07));
-    const headerTop = floater.getBoundingClientRect().top - hero.getBoundingClientRect().top;
     page.style.setProperty('--col-left', `${pad}px`);
     page.style.setProperty('--col-width', `${Math.max(160, vw - 2 * pad)}px`);
-    page.style.setProperty('--col-bottom', `${Math.max(0, hero.clientHeight - headerTop + 12)}px`);
   }
 
-  // ---- header label ----------------------------------------------------------------
-  /** Pin the label exactly where it currently is (mid-bob included) and make it plain text. */
-  function freeze(label) {
-    const at = getComputedStyle(label).transform;
-    label.style.animation = 'none';
-    label.style.transform = at === 'none' ? '' : at;
-    label.classList.add('is-header');
-    label.setAttribute('aria-current', 'page');
-  }
-
-  /**
-   * The header "pose" is a class on the label's floater (pages.css): bigger text at the bottom-right spot. It's applied
-   * instantly so it can be measured; the label then slides + scales between the two poses.
-   */
-  function poseHeader(floater, def, on) {
-    floater.classList.toggle('is-page-header', on);
-    if (on && def.header) floater.dataset.pose = def.header;
-    else delete floater.dataset.pose;
-  }
-
-  /**
-   * Where the label's text starts and how big it looks right now — mid-animation included: the scale it's painted at
-   * comes from its live transform, so a label caught halfway through growing is picked up at the size it appears.
-   */
-  function snapshot(label) {
-    const style = getComputedStyle(label);
-    const { left, top } = label.getBoundingClientRect();
-    const m = style.transform === 'none' ? null : new DOMMatrixReadOnly(style.transform);
-    const s = m ? Math.hypot(m.a, m.b) : 1;
-    const ox = parseFloat(style.paddingLeft);
-    const oy = parseFloat(style.paddingTop);
-    return { x: left + ox * s, y: top + oy * s, font: parseFloat(style.fontSize) * s, origin: `${ox}px ${oy}px` };
-  }
-
-  /** The transform that makes a label laid out at `a` look like it's at `b` (it scales about the top-left of its text). */
-  const between = (a, b) => `translate(${b.x - a.x}px, ${b.y - a.y}px) scale(${b.font / a.font})`;
-
-  /** Esc: close the menu first if it's open, then a page's own sub-view (if any), then the page itself. */
+  /** Esc: a page's own sub-view first (if any), then the page itself. */
   function goBack() {
     if (busy || !current) return;
-    if (menuOpen) return closeMenu();
     if (current.def.back?.(current.page)) return;
     close();
   }
@@ -313,12 +192,12 @@ export function createPageRouter({ hero, pages }) {
   }
 
   /** The page's content fading + sliding in, one block after another. */
-  async function enterContent(page, def, floater) {
+  async function enterContent(page, def) {
     if (!page.dataset.rendered) {
       def.render(page);
       page.dataset.rendered = 'true';
     }
-    layout(page, floater);
+    layout(page);
     page.hidden = false;
     def.onShow?.(page);
     const slide = reducedMotion ? 0 : SLIDE_PX;
@@ -339,119 +218,27 @@ export function createPageRouter({ hero, pages }) {
     );
   }
 
-  // ---- the page menu: hover / focus the header ----------------------------------------------------------------------
-  function withinStackBounds(x, y) {
-    if (!current) return false;
-    const pad = 44;
-    let l = Infinity;
-    let r = -Infinity;
-    let t = Infinity;
-    let b = -Infinity;
-    for (const { id } of [{ id: current.id }, ...stackEntries(current.id)]) {
-      const el = id === current.id ? current.floater : stackFloater(id);
-      const rect = el.getBoundingClientRect();
-      if (!rect.width && !rect.height) continue;
-      l = Math.min(l, rect.left - pad);
-      r = Math.max(r, rect.right + pad);
-      t = Math.min(t, rect.top - pad);
-      b = Math.max(b, rect.bottom + pad);
-    }
-    return x >= l && x <= r && y >= t && y <= b;
-  }
-
-  function scheduleCloseMenu() {
-    clearTimeout(closeTimer);
-    closeTimer = setTimeout(() => {
-      if (!busy) closeMenu();
-    }, T.menuCloseGrace);
-  }
-
-  function openMenu() {
-    if (!legacyMenu) return; // TODO: FLAG FOR REMOVAL: legacy menu
-    if (!current || menuOpen || busy) return;
-    menuOpen = true;
-    clearTimeout(closeTimer);
-    hero.classList.add('is-menu-open');
-    measureStack(current.label);
-    for (const { id, k } of stackEntries(current.id)) {
-      const label = stackLabel(id);
-      stackFloater(id).style.visibility = '';
-      const off = slotOffset(k);
-      const from = paintedTransform(label);
-      stopAnimations(label);
-      play(
-        label,
-        [
-          { transform: from, opacity: 0 },
-          { transform: moveTo(off.x, off.y), opacity: 1 },
-        ],
-        { duration: T.menuOpen, delay: k * T.menuOpenStagger, easing: EASE_OUT, fill: 'both' },
-      );
-    }
-  }
-
-  function closeMenu() {
-    if (!current || !menuOpen) return;
-    menuOpen = false;
-    clearTimeout(closeTimer);
-    hero.classList.remove('is-menu-open');
-    const entries = stackEntries(current.id);
-    const n = entries.length;
-    for (const { id, k } of entries) {
-      const label = stackLabel(id);
-      const closed = moveTo(CLOSED_OFFSET.x, CLOSED_OFFSET.y);
-      const from = paintedTransform(label);
-      const opacity = getComputedStyle(label).opacity;
-      stopAnimations(label);
-      play(
-        label,
-        [
-          { transform: from, opacity },
-          { transform: closed, opacity: 0 },
-        ],
-        { duration: T.menuClose, delay: (n - 1 - k) * T.menuCloseStagger, easing: EASE_OUT, fill: 'both' },
-      ).then(() => {
-        if (!menuOpen) stackFloater(id).style.visibility = 'hidden'; // (unless it has opened again meanwhile)
-      });
-    }
-  }
-
   // ---- open: home -> page ------------------------------------------------------------------------------------------
   async function open(id, { instant = false, fromHistory = false } = {}) {
     const def = pages[id];
-    const label = labelFor(id);
-    if (busy || current || !def || !label) return false;
+    if (busy || current || !def) return false;
     busy = true;
     releaseHeld(); // (nothing should be left over, but a stray held fade must never survive into a new page)
     const k = instant ? 0 : 1;
-    const floater = label.closest('.floater');
-    const others = floaters.filter((f) => f !== floater); // every other home label's floater, "interact" included
-    // The transform goes on the LABEL, never the floater — the floater's own transform is left alone so the page menu
-    // (which transforms labels too) never has a stale offset to compose with later.
-    const vectors = others.map((f) => [f.querySelector('.floater__label'), edgeExit(f.querySelector('.floater__label'))]); // measured before anything moves
+    const labels = floaters.map((f) => f.querySelector('.floater__label'));
+    const vectors = labels.map((el) => [el, edgeExit(el)]); // measured before anything moves
 
     hero.dispatchEvent(new CustomEvent('page:opening', { detail: { id } }));
     hero.classList.add('is-page-open');
-    hero.querySelector('#interact-toggle')?.setAttribute('aria-expanded', 'false');
+    interactLabel.setAttribute('aria-expanded', 'false');
     hero.querySelector('#interact-menu')?.setAttribute('hidden', '');
     if (!fromHistory) {
       history.pushState({ page: id, depth: 1 }, '', `#${id}`);
       lastState = history.state;
     }
 
-    freeze(label);
-    const from = snapshot(label); // where the label is now: small, mid-bob
-    label.style.transform = '';
-    poseHeader(floater, def, true); // ...and where it ends up: bigger, bottom-right
-    const to = snapshot(label);
-    label.style.transformOrigin = to.origin;
-
-    // 2: character fade, every other label sliding off its nearest edge, the header taking its place — all at once
+    // 1: character fade, and every label sliding off its nearest edge, all at once
     await Promise.all([
-      play(label, [{ transform: between(to, from) }, { transform: 'none' }], {
-        duration: reducedMotion ? 0 : T.header * k,
-        easing: EASE_OUT,
-      }),
       ...characterLayer.map((el) => play(el, [{ opacity: 1 }, { opacity: 0 }], { duration: T.fade * k, easing: EASE_OUT })),
       ...vectors.map(([el, v]) =>
         play(
@@ -464,42 +251,25 @@ export function createPageRouter({ hero, pages }) {
         ),
       ),
     ]);
-    label.style.transform = '';
-    label.style.transformOrigin = '';
     // Hide what's clickable or readable so it can't be tabbed to. The canvas and the floor glow are left "visible" at
     // opacity 0: hiding a WebGL canvas lets some browsers throw its drawing buffer away, and it comes back blank.
-    [nametag, ...others].forEach((el) => el && (el.style.visibility = 'hidden'));
+    [nametag, ...floaters].forEach((el) => el && (el.style.visibility = 'hidden'));
 
-    // 3: the other three pages + "homepage" quietly become the (still invisible) page menu, folded onto the header
-    for (const { id: sid } of stackEntries(id)) {
-      const sLabel = stackLabel(sid);
-      const sFloater = stackFloater(sid);
-      sLabel.style.animation = 'none';
-      sFloater.classList.add('is-menu-item');
-      sFloater.style.visibility = 'hidden';
-      sLabel.style.transform = moveTo(CLOSED_OFFSET.x, CLOSED_OFFSET.y);
-      sLabel.style.opacity = '';
-    }
-    measureStack(label);
-
-    // The header has landed: the page is open from here on, so the menu works (and a switch or Esc can take over) while
-    // the content is still coming in.
+    // The page is open from here on (a switch or Esc can take over) while the content is still coming in.
     const page = pageEl(id);
-    current = { id, def, page, floater, label };
+    current = { id, def, page };
     busy = false;
     hero.dispatchEvent(new CustomEvent('page:opened', { detail: { id } }));
 
-    // 4: content in
-    enterContent(page, def, floater).then(() => {
-      if (current?.page === page && !isMenuMember(document.activeElement)) page.focus({ preventScroll: true });
+    // 2: content in
+    enterContent(page, def).then(() => {
+      if (current?.page === page) page.focus({ preventScroll: true });
     });
     return true;
   }
 
-  // ---- switchTo: page -> page, via the open menu --------------------------------------------------------------------
-  // A switch never blocks: `current` becomes the new page straight away, every label is picked up from wherever it is
-  // (even halfway through the last switch), and the two pages' content crossfades at the same time. So you can click
-  // down the menu as fast as you like; each click just redirects everything already in motion.
+  // ---- switchTo: page -> page ---------------------------------------------------------------------------------------
+  // A switch never blocks: `current` becomes the new page straight away, and the two pages' content crossfades.
   const pageGen = new WeakMap(); // page -> counter, bumped whenever it starts showing or leaving (a stale fade-out skips hiding it)
   const fading = new WeakMap(); // page -> the elements its last fade-out touched
 
@@ -531,7 +301,7 @@ export function createPageRouter({ hero, pages }) {
   }
 
   /** The new page's content fades + slides in, quickly, straight away. */
-  function swapIn(page, def, floater) {
+  function swapIn(page, def) {
     pageGen.set(page, (pageGen.get(page) ?? 0) + 1);
     // still fading out from a moment ago? take each element from the opacity it has reached
     const reached = new Map();
@@ -544,7 +314,7 @@ export function createPageRouter({ hero, pages }) {
       def.render(page);
       page.dataset.rendered = 'true';
     }
-    layout(page, floater);
+    layout(page);
     const wasHidden = page.hidden;
     page.hidden = false;
     def.onShow?.(page);
@@ -567,87 +337,18 @@ export function createPageRouter({ hero, pages }) {
         )
         .finished.catch(() => {});
     });
-    // (not while focus is in the menu: moving it out would fold the menu away mid-browse)
-    if (!isMenuMember(document.activeElement)) page.focus({ preventScroll: true });
+    page.focus({ preventScroll: true });
   }
 
   function switchTo(id) {
     if (busy || !current || id === current.id || !pages[id]) return false;
-    clearTimeout(closeTimer);
     const old = current;
     const def = pages[id];
-    const label = stackLabel(id);
-    const floater = stackFloater(id);
     history.replaceState({ ...history.state, page: id }, '', `#${id}`);
     lastState = history.state;
-
-    // where everything is painted right now (mid-flight included), before anything changes
-    const newLayout = stackEntries(id); // the stack once `id` is current (includes old.id, not `id`)
-    const ripple = newLayout.filter((e) => e.id !== old.id);
-    const pickedFrom = snapshot(label);
-    const oldFrom = snapshot(old.label);
-    const rippleFrom = ripple.map(({ id: rid }) => paintedTransform(stackLabel(rid)));
-    for (const el of [label, old.label, ...ripple.map(({ id: rid }) => stackLabel(rid))]) stopAnimations(el);
-
-    // the new poses: the picked label becomes the header, the old header a stack item
-    label.style.transform = '';
-    label.style.opacity = '';
-    stackFloater(id).style.visibility = '';
-    floater.classList.remove('is-menu-item');
-    poseHeader(floater, def, true);
-    label.classList.add('is-header');
-    label.setAttribute('aria-current', 'page');
-    const pickedTo = snapshot(label);
-    label.style.transformOrigin = pickedTo.origin;
-
-    old.label.style.transform = '';
-    poseHeader(old.floater, old.def, false);
-    old.floater.classList.add('is-menu-item');
-    old.label.classList.remove('is-header');
-    old.label.removeAttribute('aria-current');
-    const oldTo = snapshot(old.label);
-    old.label.style.transformOrigin = oldTo.origin;
-    const oldSlot = slotOffset(newLayout.find((e) => e.id === old.id)?.k ?? 0);
-
-    current = { id, def, page: pageEl(id), floater, label };
-    measureStack(label);
-
-    // 1. labels: the picked one grows into the header, the old header shrinks into its slot, the rest ripple
-    if (menuOpen) {
-      play(label, [{ transform: between(pickedTo, pickedFrom) }, { transform: 'none' }], { duration: T.swap, easing: EASE_IO });
-      play(old.label, [{ transform: between(oldTo, oldFrom) }, { transform: moveTo(oldSlot.x, oldSlot.y) }], {
-        duration: T.swap,
-        delay: T.swapDelay,
-        easing: EASE_IO,
-      });
-      ripple.forEach(({ id: rid, k }, i) => {
-        const off = slotOffset(k);
-        play(stackLabel(rid), [{ transform: rippleFrom[i] }, { transform: moveTo(off.x, off.y) }], {
-          duration: T.swapRipple,
-          delay: T.swapRippleBase + k * T.swapRippleStagger,
-          easing: EASE_OUT,
-        });
-      });
-    } else {
-      // (a switch with the menu shut: the browser's back / forward, or a hash typed in) the new header rises out of
-      // the old one, which folds away into the closed stack; everyone else is already folded there, out of sight
-      const closed = moveTo(CLOSED_OFFSET.x, CLOSED_OFFSET.y);
-      play(label, [{ transform: between(pickedTo, pickedFrom), opacity: 0 }, { transform: 'none', opacity: 1 }], {
-        duration: T.swap,
-        easing: EASE_IO,
-      });
-      play(old.label, [{ transform: between(oldTo, oldFrom), opacity: 1 }, { transform: closed, opacity: 0 }], {
-        duration: T.swap * 0.6,
-        easing: EASE_IO,
-      }).then(() => {
-        if (!menuOpen && current?.id !== old.id) old.floater.style.visibility = 'hidden';
-      });
-      for (const { id: rid } of ripple) stackLabel(rid).style.transform = closed;
-    }
-
-    // 2. content: out and in at the same time
+    current = { id, def, page: pageEl(id) };
     if (old.page !== current.page) swapOut(old.page, old.def);
-    swapIn(current.page, def, floater);
+    swapIn(current.page, def);
     return true;
   }
 
@@ -668,13 +369,9 @@ export function createPageRouter({ hero, pages }) {
       lastState = null;
     }
     busy = true;
-    clearTimeout(closeTimer);
-    const wasMenuOpen = menuOpen;
-    menuOpen = false;
-    hero.classList.remove('is-menu-open');
-    const { def, page, floater, label } = current;
+    const { def, page } = current;
     hero.dispatchEvent(new CustomEvent('page:closing', { detail: { id: current.id } }));
-    // a switch may still be in flight: hide any other page that's still fading out, and take the labels from where they are
+    // a switch may still be in flight: hide any other page that's still fading out
     for (const other of hero.querySelectorAll('.page')) {
       if (other !== page && !other.hidden) {
         pageGen.set(other, (pageGen.get(other) ?? 0) + 1);
@@ -682,67 +379,27 @@ export function createPageRouter({ hero, pages }) {
       }
     }
 
-    // 1. everything near the header slides off the right edge: the header, and — if the menu was open — its whole
-    //    stack, cascading top-of-stack first, header last. The content leaves at the same time.
-    const stackIds = wasMenuOpen ? stackEntries(current.id) : [];
-    const slideTargets = [{ label, k: -1 }, ...stackIds.map(({ id, k }) => ({ label: stackLabel(id), k }))];
-    const n = slideTargets.length;
+    // 1. the content leaves
     const { leaving, ready } = leaveContent(page, def);
-    await Promise.all([
-      ...slideTargets.map(({ label: lbl, k }) => {
-        const v = rightExit(lbl);
-        const delay = (n - 1 - (k + 1)) * T.slideOffStagger;
-        const from = paintedTransform(lbl);
-        stopAnimations(lbl);
-        return play(
-          lbl,
-          [
-            { opacity: 1, transform: from },
-            { opacity: 0, transform: move(v.x, v.y) },
-          ],
-          { duration: T.slideOff, delay, easing: EASE_IN, hold: true },
-        );
-      }),
-      ready,
-    ]);
+    await ready;
     finishLeave(page, def, leaving);
 
-    // 2. tidy up: every label that was part of the page menu goes back to being a plain, invisible home label —
-    //    imperceptible, since none of it is on screen right now
-    for (const pid of ['about', 'say-hi', 'photos', 'my-things']) {
-      const pLabel = labelFor(pid);
-      const pFloater = pLabel.closest('.floater');
-      pFloater.classList.remove('is-menu-item', 'is-page-header');
-      delete pFloater.dataset.pose;
-      pFloater.style.visibility = 'hidden';
-      pLabel.style.transform = '';
-      pLabel.style.transformOrigin = '';
-      pLabel.style.animation = '';
-      pLabel.style.opacity = '';
-    }
-    label.classList.remove('is-header');
-    label.removeAttribute('aria-current');
-    homeFloater.style.visibility = 'hidden';
-    homeLabel.style.transform = '';
-    homeLabel.style.opacity = '';
-    interactFloater.style.visibility = 'hidden';
-    const interactLabel = interactFloater.querySelector('.floater__label');
-    interactLabel.style.transform = '';
-    interactLabel.style.opacity = '';
-    nametag.style.visibility = 'hidden';
-
-    // 3. the home screen comes back: character + floor glow fade up, and every home label drifts in from whichever
+    // 2. the home screen comes back: character + floor glow fade up, and every home label drifts in from whichever
     //    edge it's nearest to, staggered. (The render loop has been running again since `page:closing`, so what fades
     //    in is already a live frame. The nametag is left to its own CSS fade: animating it here would flash it.)
+    const labels = RETURN_ORDER.map((rid) => (rid === 'interact' ? interactLabel : labelFor(rid)));
+    for (const lbl of labels) {
+      lbl.style.transform = '';
+      lbl.style.opacity = '';
+    }
     hero.dispatchEvent(new CustomEvent('page:returning', { detail: { id: current.id } }));
     nametag.style.visibility = '';
     nametag.style.removeProperty('opacity');
     await Promise.all([
       ...fadeLayer.map((el) => play(el, [{ opacity: 0 }, { opacity: 1 }], { duration: T.homeIn, delay: 60, easing: EASE_IO, fill: 'both' })),
-      ...RETURN_ORDER.map((id, i) => {
-        const lbl = id === 'interact' ? interactLabel : labelFor(id);
+      ...labels.map((lbl, i) => {
         lbl.closest('.floater').style.visibility = '';
-        const v = edgeExit(lbl); // (its transform is already cleared above, so this reads its true home position)
+        const v = edgeExit(lbl); // (its transform is cleared above, so this reads its true home position)
         return play(
           lbl,
           [
@@ -753,14 +410,16 @@ export function createPageRouter({ hero, pages }) {
         );
       }),
     ]);
-    [...fadeLayer, interactLabel, ...['about', 'say-hi', 'photos', 'my-things'].map(labelFor)].forEach((el) => {
+    [...fadeLayer, ...labels].forEach((el) => {
       el.style.opacity = '';
       el.style.transform = '';
     });
 
     hero.classList.remove('is-page-open');
-    label.focus({ preventScroll: true });
     const id = current.id;
+    if (!document.activeElement || document.activeElement === document.body || page.contains(document.activeElement)) {
+      labelFor(id)?.focus({ preventScroll: true });
+    }
     current = null;
     busy = false;
     hero.dispatchEvent(new CustomEvent('page:closed', { detail: { id } }));
@@ -770,89 +429,17 @@ export function createPageRouter({ hero, pages }) {
   // ---- wiring ------------------------------------------------------------------------
   hero.addEventListener('click', (event) => {
     const label = event.target.closest('.floater__label');
-    if (!label) return;
+    if (!label?.dataset.page) return;
     event.preventDefault();
-
-    if (label === homeLabel) {
-      if (current) close();
-      return;
-    }
-    if (label.classList.contains('is-header')) {
-      // on a device with no hover, tapping the header is the only way to reach the menu
-      if (!canHover && current) (menuOpen ? closeMenu() : openMenu());
-      return;
-    }
-    if (!label.dataset.page) return;
-    if (current && menuOpen && label.dataset.page !== current.id) switchTo(label.dataset.page);
-    else if (!current) open(label.dataset.page);
-  });
-
-  // hovering the header (or moving within the stack's bounds) opens / keeps open the page menu
-  hero.addEventListener('pointermove', (event) => {
-    if (!current) return;
-    if (!menuOpen) {
-      if (canHover && event.target.closest('.floater') === current.floater) openMenu();
-      return;
-    }
-    if (withinStackBounds(event.clientX, event.clientY)) clearTimeout(closeTimer);
-    else scheduleCloseMenu();
-  });
-  hero.addEventListener('pointerleave', () => {
-    if (menuOpen) scheduleCloseMenu();
-  });
-
-  // keyboard: focusing the header or a stack item opens the menu; focusing away from it closes it
-  const isMenuMember = (el) => {
-    if (!current || !el?.closest) return false; // event.target is only ever an Element for a real pointer/focus event
-    const floater = el.closest('.floater');
-    return floater === current.floater || !!floater?.classList.contains('is-menu-item');
-  };
-  hero.addEventListener('focusin', (event) => {
-    if (!current || busy || !isMenuMember(event.target)) return;
-    clearTimeout(closeTimer);
-    if (!menuOpen) openMenu();
-  });
-  hero.addEventListener('focusout', () => {
-    if (!current || !menuOpen) return;
-    requestAnimationFrame(() => {
-      if (!isMenuMember(document.activeElement)) scheduleCloseMenu();
-    });
-  });
-
-  // touch: tapping outside the header/stack closes the menu (there's no "pointer leaves" to catch it)
-  document.addEventListener('pointerdown', (event) => {
-    if (menuOpen && !isMenuMember(event.target)) closeMenu();
+    if (!current) open(label.dataset.page);
   });
 
   window.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && current && !busy) goBack();
   });
 
-  // ↑ / ↓ (and Home / End) walk the menu in the order it's drawn, top of the stack down to the header. (Tab still goes
-  // in page order, which doesn't match the zig-zag.) From the header, ↑ opens the menu if it isn't already.
-  hero.addEventListener('keydown', (event) => {
-    if (!legacyMenu) return; // TODO: FLAG FOR REMOVAL: legacy menu
-    if (!current || busy || !isMenuMember(event.target)) return;
-    const keys = { ArrowUp: -1, ArrowDown: 1, Home: -Infinity, End: Infinity };
-    if (!(event.key in keys) || event.altKey || event.ctrlKey || event.metaKey) return;
-    event.preventDefault();
-    if (!menuOpen) openMenu();
-    const order = [...stackEntries(current.id).map(({ id }) => stackLabel(id)), current.label];
-    const at = order.indexOf(event.target.closest('.floater__label'));
-    const to = Math.min(Math.max((at < 0 ? order.length - 1 : at) + keys[event.key], 0), order.length - 1);
-    order[to].focus({ preventScroll: true });
-  });
-
   window.addEventListener('resize', () => {
-    if (!current) return;
-    layout(current.page, current.floater);
-    if (menuOpen) {
-      measureStack(current.label);
-      for (const { id, k } of stackEntries(current.id)) {
-        const off = slotOffset(k);
-        stackLabel(id).style.transform = moveTo(off.x, off.y);
-      }
-    }
+    if (current) layout(current.page);
   });
 
   /**
@@ -914,7 +501,7 @@ export function createPageRouter({ hero, pages }) {
   const SCROLL_ORDER = ['about', 'photos', 'my-things', 'say-hi'];
 
   function scrollStep(dir) {
-    if (busy || menuOpen) return;
+    if (busy) return;
     const at = current ? SCROLL_ORDER.indexOf(current.id) : -1;
     const next = at + dir;
     if (next >= SCROLL_ORDER.length) return;

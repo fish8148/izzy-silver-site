@@ -30,7 +30,6 @@ function contactLink(label, href) {
  */
 export const sayHiPage = {
   stagger: 220,
-  header: 'aside-bottom', // every page's header lives bottom-right (see pages.css)
 
   preload() {
     loadFaceLift()

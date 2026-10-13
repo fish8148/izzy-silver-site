@@ -19,7 +19,6 @@ function make(tag, className, text) {
  * page.
  */
 export const thingsPage = {
-  header: 'aside-bottom', // every page's header lives bottom-right, pinned in place (see pages.css)
 
   preload() {
     loadThings().catch(() => {});
@@ -81,8 +80,6 @@ export const thingsPage = {
     const view = views.get(page);
     view.wanted = true;
     view.note.hidden = true;
-    const hero = page.closest('.hero');
-    const header = { floater: hero.querySelector('.floater.is-page-header'), label: hero.querySelector('.floater__label.is-header') };
 
     view.lift ??= loadThings().then(({ createFloatingThings }) =>
       createFloatingThings({
@@ -102,7 +99,7 @@ export const thingsPage = {
         if (import.meta.env.DEV) window.__things = lift;
         if (!view.wanted) return; // closed again before it had loaded
         view.info.classList.remove('is-open');
-        lift.start(header); // static by default: a wall the objects bounce off of, pinned in place by the router
+        lift.start({}); // (pages no longer have a header for the objects to bounce off)
         view.motion.hidden = !(tilt.supported && tilt.needsPermission && !tilt.on); // (already allowed on the home screen? then no button)
       })
       .catch((error) => {

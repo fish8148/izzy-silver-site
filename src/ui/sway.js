@@ -29,8 +29,7 @@ export function createSway(hero) {
   }
 
   const range = SWAY.stiffness[1] - SWAY.stiffness[0];
-  // (not the page menu's "homepage" entry: it only exists inside the menu, never floating on the home screen)
-  const bodies = [...hero.querySelectorAll('.floater:not(.is-menu-item)')].map((el, index) => ({
+  const bodies = [...hero.querySelectorAll('.floater')].map((el, index) => ({
     el,
     x: 0,
     y: 0,

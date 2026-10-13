@@ -14,7 +14,6 @@ function card(className, photo) {
 /** About Me: two photo cards, then one paragraph at a time. Each is its own staggered block. */
 export const aboutPage = {
   stagger: 200,
-  header: 'aside-bottom', // every page's header lives bottom-right (see pages.css)
 
   render(page) {
     page.classList.add('page--about');

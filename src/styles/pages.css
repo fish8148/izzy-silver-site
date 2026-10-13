@@ -4,13 +4,13 @@
   --card-radius: clamp(18px, 2.4vw, 46px);
   --pad: clamp(20px, 7vw, 140px);
   --bleed: 64px; /* room inside the scroller for the slide-in from the left */
-  /* the label that becomes a page's header grows to this: about twice its size floating around the character */
+  /* large type on a page (my things' titles, say hi's links): about twice a floating label's size */
   --header-size: clamp(24px, 3.1vw, 64px);
 }
 
 @media (max-width: 640px) {
   .hero {
-    --header-size: var(--label-size); /* no room to grow on a phone: the header sits where the label was */
+    --header-size: var(--label-size); /* no room to grow on a phone */
   }
 }
 
@@ -35,7 +35,7 @@
   pointer-events: none;
 }
 
-/* content column — the router sets --col-left / --col-width so it never runs under the header */
+/* content column — the router sets --col-left / --col-width (the margins) */
 .page__col {
   position: absolute;
   top: clamp(56px, 12vh, 150px);
@@ -78,49 +78,6 @@
   font-size: var(--page-text);
   line-height: 1.25;
   color: var(--muted);
-}
-
-/* ---------- header label (the clicked nav label) ---------- */
-.floater__label.is-header {
-  cursor: default; /* still hoverable / focusable / tappable: that's what reveals the page menu below */
-}
-
-/* the router adds .is-page-header to the header's floater (see poseHeader in router.js) and slides the label into it */
-.floater.is-page-header .floater__label {
-  font-size: var(--header-size);
-}
-
-/* Every page's header sits in the same spot, bottom-right (`aside-bottom` in every page module). Hovering / focusing
-   it reveals the other pages, stacked above it — see the page menu section further down and router.js. */
-.floater.is-page-header[data-pose='aside-bottom'],
-.floater.is-menu-item {
-  top: 82.2%;
-  left: 78.9%;
-  right: auto;
-}
-
-@media (max-width: 720px) {
-  .floater.is-page-header[data-pose='aside-bottom'],
-  .floater.is-menu-item {
-    top: 84.5%;
-    left: 60%;
-  }
-}
-
-/* ---------- page menu (hover / focus the header) ---------- */
-/* the other pages, folded up small at the header until the menu opens (router.js animates the rest via transform) */
-.floater.is-menu-item .floater__label {
-  font-size: calc(var(--header-size) * 0.8);
-}
-
-/* while the menu is open, the page content underneath steps back so the popped-out stack reads clearly
-   (the transition sits on the base rule so it eases back up when the menu closes, too) */
-.page {
-  transition: opacity 0.4s ease;
-}
-
-.hero.is-menu-open .page:not([hidden]) {
-  opacity: 0.4;
 }
 
 /* ---------- about me ---------- */
@@ -176,8 +133,8 @@
   letter-spacing: -0.012em;
 }
 
-/* Desktop and tablet: the photos start at the left margin and the header sits in the top-right corner, sized in
-   cqw / cqh (a % of this page) like the photos page. Phones keep the compact column above, beside the header. */
+/* Desktop and tablet: the photos start at the left margin, sized in cqw / cqh (a % of this page) like the photos page.
+   Phones keep the compact column. */
 @media (min-width: 721px) {
   .page--about {
     container-type: size;
@@ -189,7 +146,7 @@
   .page--about .page__col {
     top: 19.5cqh;
     left: calc(7cqw - var(--bleed));
-    width: calc(66cqw + var(--bleed)); /* stops short of the header in the corner */
+    width: calc(66cqw + var(--bleed));
   }
 
   .about-cards {
@@ -574,7 +531,7 @@
 
 @media (max-width: 720px) {
   .hi-contact {
-    bottom: calc(var(--col-bottom, 13%) + 8px); /* above the header, which sits across the bottom on a phone */
+    bottom: 8%;
     font-size: clamp(18px, 5.6vw, 26px);
   }
 
@@ -761,21 +718,20 @@
 
 /* ---------- narrow screens ---------- */
 @media (max-width: 720px) {
-  /* the header sits across the bottom of the screen, so content scrolls in the full-width space above it */
   .page__col {
-    bottom: var(--col-bottom, 0);
+    bottom: 0;
     padding-bottom: 24px;
   }
 }
 
-/* Phones, and tablets held upright: no drifting rows, just a grid (the middle copy of each photo) that scrolls up and down,
-   above the header. photos.js matches this same query. */
+/* Phones, and tablets held upright: no drifting rows, just a grid (the middle copy of each photo) that scrolls up and down.
+   photos.js matches this same query. */
 @media (max-width: 720px), (max-width: 1100px) and (orientation: portrait) {
   .gallery {
     --cols: 2;
     --grid-gap: clamp(8px, 2.5vw, 16px);
     top: clamp(56px, 12vh, 150px);
-    bottom: var(--col-bottom, 96px);
+    bottom: 0;
     left: var(--col-left, 7vw);
     width: var(--col-width, 86vw);
     display: grid;

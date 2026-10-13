@@ -572,7 +572,6 @@ function createPhotos(page) {
 
 export const photosPage = {
   stagger: 90,
-  header: 'aside-bottom', // every page's header lives bottom-right (see pages.css)
   // leaving: whatever is on screen dissolves left to right — the carousel if it's up, else the visible photos
   exit: {
     targets: (page) => (controllers.get(page)?.showing ? [controllers.get(page).layer] : onScreenCards(page)),

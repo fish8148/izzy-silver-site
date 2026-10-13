@@ -8,8 +8,8 @@
  * cursor nears its edge. The scroll pull (src/ui/scroll-pull.js) also opens this menu, out of the right-hand seam; it
  * drives the same elements frame by frame through `beginPull` / `endPull` and the element handles returned below.
  *
- * Mouse / trackpad only: devices without a fine pointer keep the old header menu (see LEGACY_MENU_ENABLED in
- * src/pages/router.js).
+ * On a touch screen, tap right at the left or right edge (where the seams are) to open it, and tap anywhere else to
+ * close it.
  *
  * Three elements per link, one transform each, so nothing composes by surprise: the item slides in (and rolls, in a
  * pull), the link scales on hover, and the span inside floats and tilts.
@@ -24,6 +24,7 @@ const ITEMS = [
 ];
 
 const TRIGGER = 24; // px from the edge that opens it
+const TOUCH_TRIGGER = 32; // ...for a fingertip
 const CLOSE_DELAY = 300; // ms after the cursor leaves before it folds away
 const SLACK = 48; // px around the links that still counts as "in the menu"
 const OPEN = { duration: 400, stagger: 50, travel: 64 };
@@ -40,8 +41,6 @@ const smooth = (x) => {
 };
 
 export function createEdgeMenu({ router }) {
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return null;
-
   const root = document.createElement('nav');
   root.className = 'edge-menu';
   root.setAttribute('aria-label', 'Pages');
@@ -212,6 +211,16 @@ export function createEdgeMenu({ router }) {
   document.documentElement.addEventListener('mouseleave', () => {
     cursor = { x: -1, y: cursor.y };
     drawSeams();
+  });
+
+  // touch: no hover, so a tap at the edge opens it and a tap anywhere but a link closes it
+  document.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse') return;
+    const { clientX: x, clientY: y } = event;
+    if (open) {
+      if (!event.target.closest?.('.edge-menu__link')) hide();
+    } else if (x <= TOUCH_TRIGGER) show('left', y);
+    else if (x >= window.innerWidth - TOUCH_TRIGGER) show('right', y);
   });
 
   list.addEventListener('click', (event) => {

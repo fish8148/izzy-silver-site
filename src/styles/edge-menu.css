@@ -216,3 +216,10 @@
     animation: none;
   }
 }
+
+/* a phone is too narrow for the fade to leave the photos showing beside the links: shade the whole width */
+@media (max-width: 720px) {
+  .edge-menu__shade {
+    width: 100%;
+  }
+}

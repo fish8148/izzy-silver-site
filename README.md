@@ -129,39 +129,25 @@ For the deployed version, consider a track you have the rights to.
 
 ## Pages and transitions
 
-Every page's header lives in the same spot, bottom-right (`header: 'aside-bottom'`, the `data-pose` rule in `pages.css`) —
-all built with plain DOM + Web Animations API in `src/pages/router.js`.
+Pages have no header or menu of their own: you move around with the edge menu, by scrolling / swiping past a page's end,
+**Esc**, or the browser's back button (see "Edge menu" and "Scrolling and touch" below). All built with plain DOM + Web
+Animations API in `src/pages/router.js`.
 
 **Opening a page from home** (click a floating label):
 
-1. the clicked label becomes the page header: it grows to about twice its size (`--header-size` in `pages.css`) and travels
-   to the bottom-right spot
-2. the character, nametag and floor glow fade out; every other label — **interact** included — slides off through
-   whichever screen edge it's nearest to, fading as it goes (~420 ms)
-3. once off-screen, those same labels are silently repositioned onto the (still invisible) page menu — see below
-4. the page's blocks fade + slide in from the left, one after another
+1. the character, nametag and floor glow fade out; every label — **interact** and the clicked one included — slides off
+   through whichever screen edge it's nearest to, fading as it goes (~420 ms)
+2. the page's blocks fade + slide in from the left, one after another
 
-There's no back arrow: **going home** ("homepage" in the menu, **Esc**, or the browser's back button) plays the same shape in
-reverse: the header — and its whole stack, if the menu happened to be open — slides off the right edge, then every home
-label drifts back in from its nearest edge, staggered. The render loop wakes as closing begins, so the character fades in
-as a live frame. `/#about` and `/#photos` deep-link straight onto a page, and typing a page's hash into the address bar
-while the site is open (or following a plain `#photos` link) goes there too: opening it, or switching to it if a page is
-already open. The browser's back / forward step through those the same way, and going home always lands on the home
-screen however many were typed in (each history entry remembers how far it is from home). Timings are the `T` object at
-the top of `router.js`. The 3D scene pauses rendering while a page is open.
+**Going home** ("homepage" in the edge menu, **Esc**, or the browser's back button) plays it in reverse: the content leaves,
+then every home label drifts back in from its nearest edge, staggered. The render loop wakes as closing begins, so the
+character fades in as a live frame. **Switching** straight from one page to another crossfades their content and never
+blocks. `/#about` and `/#photos` deep-link straight onto a page, and typing a page's hash into the address bar while the
+site is open (or following a plain `#photos` link) goes there too. The browser's back / forward step through those the same
+way, and going home always lands on the home screen however many were typed in (each history entry remembers how far it is
+from home). Timings are the `T` object at the top of `router.js`. The 3D scene pauses rendering while a page is open.
 
-**The page menu:** hovering (or keyboard-focusing) the header reveals the other pages — plus a teal **homepage** entry —
-stacked above it in a fixed order (`MENU_ORDER` in `router.js`), indented in a zig-zag. It's built from the same label
-elements that float on the home screen, just tagged `.is-menu-item` and repositioned by transform. Clicking another entry
-swaps pages without going home: the picked label grows into the header, the old header shrinks into its new stack slot, and
-the rest of the stack rearranges around them while the two pages' content crossfades. Switching never blocks: you can click
-another entry at any moment and everything in motion is picked up from wherever it is and redirected. The menu stays open
-throughout. Clicking **homepage** (or **Esc**, which closes the menu first if it's open) goes home as above. On a device with no
-hover, tapping the header toggles the menu instead, and tapping outside it closes it. From the keyboard, **↑ / ↓** (and
-**Home / End**) move through the menu in the order it's drawn, top to bottom; Tab still follows the page's order. While the
-menu is open the page underneath dims to 40% (`.hero.is-menu-open .page` in `pages.css`).
-
-A page is just `{ render(page), blocks(page), stagger?, header?, exit?, onShow?(page), onHide?(page), back?(page), preload?() }`
+A page is just `{ render(page), blocks(page), stagger?, exit?, onShow?(page), onHide?(page), back?(page), preload?() }`
 registered in `src/pages/index.js`; `blocks` returns the elements that animate in, in order, and `onShow` / `onHide` are for pages
 that run something while they're open (the photo drift, the head, the floating objects). `exit` says how the content leaves: by
 default the blocks in reverse, sliding left. Photos overrides it to fade every photo *currently on screen*, left to right, because
@@ -169,11 +155,10 @@ the drifting rows show copies of the photos and not just the real set (or the ca
 
 - `onHide` may return a promise. The router waits for it (along with the content leaving) before it moves on — my things uses
   it to close whatever object is open.
-- `back` gets the first press of **Esc** (once any open menu has been closed) and returns `true` if it handled it. My things
+- `back` gets the first press of **Esc** (once the edge menu, if open, has been closed) and returns `true` if it handled it. My things
   uses it to close an open object first, and photos to close its carousel; only a press it doesn't handle closes the page.
 - `preload` runs once the hero is up and the browser is idle (main.js), so a page can fetch what it needs ahead of time
   (say hi fetches the head scan). It's skipped when the visitor has "save data" on.
-- `header` is `'aside-bottom'` on every page now — it's still a per-page field in case a page ever needs to opt out.
 
 `src/pages/coming-soon.js` is a one-line stand-in for a page that has no content yet (nothing uses it right now).
 
@@ -199,10 +184,8 @@ page; everything on it is measured in screen pixels.
 
 - Objects drift on their own, tumble slowly, and bounce off invisible walls at the edges of the screen and off each other.
 - **Drag one and let go**: it keeps the direction and speed you let go with and only slowly settles back to a drift (`damping`).
-- **The header is a wall too**: objects bounce off its rectangle so they never drift behind the text. It used to float around
-  as one more body itself, but the router now keeps every page's header pinned in place (so hovering it to open the page
-  menu is reliable) — `floating-things.js`'s `start()` takes a `static` option (on by default) that keeps it from drifting
-  while still colliding.
+- Pages no longer have a header, so `start({})` is called with no header rectangle. (`floating-things.js` still supports one:
+  pass `{ floater, label }` and the objects bounce off it.)
 - **Click one** (a press that hardly moves): the others fade away and it swings over to the left, big, spinning slowly. Its title and
   description appear on the right. Drag it to spin it. **Tap the empty space** or press **Esc** to put it back; the next
   Esc leaves the page.
@@ -223,7 +206,7 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 ## Editing content
 
 - **About Me:** `src/data/about.js` (two photos + one entry per paragraph; each paragraph is its own staggered block).
-  The layout (photo sizes, text width, where the header goes) is the About section of `pages.css`; the text width is in
+  The layout (photo sizes, text width) is the About section of `pages.css`; the text width is in
   `em` so the lines break in the same places at any screen size.
 - **Photos:** `src/data/photos.js`. Each photo has a `src`, `alt`, a `caption` (its description) and an optional `shape`:
   `'wide'` (4:3, the default) or `'tall'` (3:4). The page is the "Photos Board" design, variant 7a ("grow"), from Claude
@@ -268,8 +251,7 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 - In dev, `window.__izzy` exposes the stage, character, animator (`playEntrance('moonwalk')`, `cycle()`), the measured `anchors`,
   `enter()` (a random entrance, as on returning from a page) and party; `window.__hi` the head (`step`, `render`, `reset`,
   `deformed`); `window.__things` the floating objects (`bodies`, `header`, `select(id)`, `step`, `draw`); `window.__router`
-  the router (`open(id)`, `close()`, `isOpen`) — the page menu itself (`openMenu`/`closeMenu`/`switchTo`) is internal to
-  the closure, so drive it through real hover/click/focus events, or a dispatched `pointermove` on the header's label.
+  the router (`open(id)`, `close()`, `go(id)`, `currentId`, `isOpen`).
 - A browser tab/pane that's hidden (backgrounded) can stall `element.animate().finished` indefinitely, since the compositor
   isn't painting — an `await`ed router call can hang until the tab is visible again. Fire it without awaiting
   (`window.__router.open('about')`, no `await`) and poll state separately if you're driving the router from a background tab.
@@ -285,6 +267,6 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 
 ## Edge menu
 
-Push the cursor against the left or right edge of the screen (a 24px strip) and the pages slide out from that edge: `homepage`, `about me`, `photos`, `my things`, `say hi`, in a straight column down nearly the full height of the screen (clamped so nothing clips), over a dark shade. The page you're on is light blue. A thin glowing seam rests on each edge so you know it's there; it breathes, and reaches toward the cursor as it nears the edge. It folds away 300ms after the cursor leaves it. Mouse / trackpad only (`src/ui/edge-menu.js`, `src/styles/edge-menu.css`).
+Push the cursor against the left or right edge of the screen (a 24px strip) and the pages slide out from that edge: `homepage`, `about me`, `photos`, `my things`, `say hi`, in a straight column down nearly the full height of the screen (clamped so nothing clips), over a dark shade. The page you're on is light blue. A thin glowing seam rests on each edge so you know it's there; it breathes, and reaches toward the cursor as it nears the edge. It folds away 300ms after the cursor leaves it. (`src/ui/edge-menu.js`, `src/styles/edge-menu.css`).
 
-The old header menu (hover the header for a stack of the other pages) is switched off on those devices by `LEGACY_MENU_ENABLED = false` in `src/pages/router.js`, marked `TODO: FLAG FOR REMOVAL: legacy menu`. Touch screens still use it, since the edge menu needs a cursor.
+On a touch screen, tap right at the left or right edge (where the seams are) to open it; tap anywhere else to close it. Pages have no header of their own any more: the edge menu, scrolling / swiping past a page's end, Esc and the browser's back button are how you move around.
