@@ -208,16 +208,16 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 - **About Me:** `src/data/about.js` (two photos + one entry per paragraph; each paragraph is its own staggered block).
   The layout (photo sizes, text width) is the About section of `pages.css`; the text width is in
   `em` so the lines break in the same places at any screen size.
-- **Photos:** `src/data/photos.js`. Each photo has a `src`, `alt`, a `caption` (its description) and an optional `shape`:
-  `'wide'` (4:3, the default) or `'tall'` (3:4). The page is the "Photos Board" design, variant 7a ("grow"), from Claude
-  Design. Two full-width rows (first half of the photos on top) drift to the right and loop, each on its own, the bottom
-  one a little slower; they keep drifting under the pointer (only the carousel stops them). Hovering a photo fades in a dark gradient with
-  its description. Clicking one lifts it out of its row and grows it into the centre while the rows fade; its neighbours
-  (shaded, at the screen edges) and the description fade in as it arrives. Click a neighbour or use ← / → to move (it
-  loops); **Esc** or a click on the background flies it back into the rows. All sizes come from the design's 1280×800 board
-  and scale with the window (`--u`); the knobs are at the top of `src/pages/photos.js` (`DRIFT`, `ROW_SPEED`, `T`, ...).
-  Nothing drifts if the visitor has "reduce motion" on. Phones get a plain two-column grid instead of the rows; the
-  carousel works the same there.
+- **Photos:** `src/data/photo-trips.js`, grouped by trip: each trip has a `slug`, a lowercase `name`, a `description`
+  (1–2 sentences, or `''` for none) and its `photos`, each `{ src, shape, caption, alt? }` (`src` is the name in
+  `public/photos` without size/extension; `shape` is `'wide'` or `'tall'`, as `npm run prep:photos` prints it). The page is
+  the "scroll-synced index" design (13a): the trips' names stay fixed on the left, the photos scroll as one run of chapters
+  on the right (a 3-column grid; the first photo of each trip is big), and the trip you're scrolled into turns blue, steps
+  in and opens its description. Click a name to scroll to that trip. Hovering a photo shows its caption; clicking it grows
+  it into the viewer, which moves within that trip only (← / →, a neighbour, a swipe or a sideways scroll; it loops), and
+  **Esc** or a background click flies it back. Under 900px the index becomes a row of names along the top and the grid two
+  columns. Scrolling past the bottom of the chapters pulls in the next page, as anywhere else. Knobs are at the top of
+  `src/pages/photos.js` (`ACTIVATE`, `SPANS`, ...); the look is the photos section of `pages.css`.
 - **Adding real photos (About and Photos):** put the originals in `photos-src/` (not served, so any size is fine; export
   iPhone HEICs as JPEG first) and run `npm run prep:photos`. Each one becomes 800px and 1600px wide AVIF + WebP files in
   `public/photos/`, turned the right way up and stripped of location/camera data, and the script prints whether each is

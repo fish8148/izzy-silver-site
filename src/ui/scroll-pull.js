@@ -72,14 +72,14 @@ export function createScrollPull({ router, menu, hero }) {
     return i >= 0 && i < ORDER.length ? ORDER[i] : undefined;
   }
 
-  const scrolls = (el) => el.matches('.page__col, .gallery') && getComputedStyle(el).overflowY === 'auto' && el.scrollHeight - el.clientHeight > 1;
+  const scrolls = (el) => el.matches('.page__col, .trips__chapters') && getComputedStyle(el).overflowY === 'auto' && el.scrollHeight - el.clientHeight > 1;
 
   /** The page's own scroller that `el` sits in, or, with no `el` (keyboard), the open page's main one. */
   function scrollerFor(el) {
     for (let n = el; n && n !== hero && n instanceof Element; n = n.parentElement) if (scrolls(n)) return n;
-    if (el && el !== document.body && el !== document.documentElement && hero.contains(el) && !el.matches('.page')) return null;
+    if (el && el !== document.body && el !== document.documentElement && hero.contains(el) && !el.closest('.page')) return null; // (anywhere on a page counts as over its scroller)
     const page = hero.querySelector('.page:not([hidden])');
-    return page ? [...page.querySelectorAll('.page__col, .gallery')].find(scrolls) ?? null : null;
+    return page ? [...page.querySelectorAll('.page__col, .trips__chapters')].find(scrolls) ?? null : null;
   }
 
   function edges(scroller) {

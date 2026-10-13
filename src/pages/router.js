@@ -514,7 +514,7 @@ export function createPageRouter({ hero, pages }) {
   /** The vertical scroller under `el` that has somewhere to go, with which of its ends you're at. */
   function scrollEdges(el) {
     for (let n = el; n && n !== hero; n = n.parentElement) {
-      if (!n.matches?.('.page__col, .gallery') || getComputedStyle(n).overflowY !== 'auto') continue;
+      if (!n.matches?.('.page__col, .trips__chapters') || getComputedStyle(n).overflowY !== 'auto') continue;
       const room = n.scrollHeight - n.clientHeight;
       if (room > 4) return { top: n.scrollTop <= 2, bottom: n.scrollTop >= room - 2 };
     }

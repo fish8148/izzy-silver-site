@@ -1,8 +1,8 @@
 /**
- * Soft fades at the top / bottom of anything that scrolls vertically (a page's column, the phone photo grid), shown only
+ * Soft fades at the top / bottom of anything that scrolls vertically (a page's column), shown only
  * on the side that has more to scroll to (the `.has-above` / `.has-below` rules in pages.css).
  */
-const SCROLLERS = '.page__col, .gallery';
+const SCROLLERS = '.page__col';
 
 function update(el) {
   const room = el.scrollHeight - el.clientHeight;

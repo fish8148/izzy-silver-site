@@ -52,8 +52,7 @@
 }
 
 /* scroll-edge fades: ui/scroll-fade.js adds .has-above / .has-below when there is more to scroll to */
-.page__col,
-.gallery {
+.page__col {
   --fade-size: clamp(24px, 5vh, 56px);
   --fade-top: 0px;
   --fade-bottom: 0px;
@@ -189,51 +188,276 @@
   }
 }
 
-/* ---------- photos (the "Photos Board" design, 7a "grow") ---------- */
-/* Sized from the design's 1280×800 board: --u is one design px (photos.js sets it from the page's size). */
+/* ---------- photos (the "scroll-synced index" design, 13a) ---------- */
+/* A fixed index of trips on the left, and the photos as one long scroll of chapters on the right (photos.js).
+   --u is one px of the viewer's 1280×800 board (photos.js sets it from the page's size). */
 .page--photos {
   --u: min(0.0781vw, 0.125vh);
+  --trip-blue: #6fb3e0;
+  --trip-meta: #5a5a5a;
+  --trip-desc: #8f8f8f;
+  --trip-line: #262626;
+  background: #000;
+  transition: background-color 0.4s ease;
 }
 
-/* the rows: each drifts to the right and loops (photos.js moves them) */
-.gallery {
+@starting-style {
+  .page--photos {
+    background-color: transparent; /* fades to black as the page opens, instead of snapping */
+  }
+}
+
+.trips {
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: clamp(300px, 33vw, 420px) minmax(0, 1fr);
   pointer-events: auto;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  touch-action: pan-y; /* a sideways drag moves the rows (photos.js) */
-  cursor: grab;
   transition: opacity 0.5s ease;
 }
 
-.gallery.is-dragging,
-.gallery.is-dragging .gallery__card {
-  cursor: grabbing;
-}
-
-.page--photos.is-carousel .gallery {
+.page--photos.is-carousel .trips {
   opacity: 0;
   pointer-events: none;
 }
 
-.gallery__row {
-  position: absolute;
-  left: 0;
+/* the index: fixed, the trips' names stacked and centred, the one you're in blue, stepped in, with its description */
+.trips__index {
   display: flex;
-  gap: calc(36 * var(--u));
-  will-change: transform;
-  backface-visibility: hidden;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 0 40px 0 64px; /* (the left 24px stays clear for the edge menu's hot zone) */
 }
 
-.gallery__row[data-row='0'] {
-  top: calc(24 * var(--u));
+.trips__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.gallery__row[data-row='1'] {
-  top: calc(346 * var(--u));
+.trips__item {
+  display: flex;
+  flex-direction: column;
+  opacity: 0.32;
+  transition: opacity 0.3s ease;
+}
+
+.trips__item.is-active,
+.trips__item:hover,
+.trips__item:focus-within {
+  opacity: 1;
+}
+
+.trips__item:not(.is-active):hover,
+.trips__item:not(.is-active):focus-within {
+  opacity: 0.6;
+}
+
+.trips__link {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: #fff;
+  text-decoration: none;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  outline-offset: 6px;
+}
+
+.trips__item.is-active .trips__link {
+  transform: translateX(14px);
+}
+
+.trips__name {
+  font-size: clamp(36px, 4vw, 52px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.trips__item.is-active .trips__name {
+  color: var(--trip-blue);
+}
+
+.trips__count {
+  font-size: 15px;
+  color: var(--trip-meta);
+}
+
+.trips__desc {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.3s ease;
+}
+
+.trips__item.is-active .trips__desc {
+  max-height: 120px;
+  opacity: 1;
+}
+
+.trips__desc p {
+  margin: 0;
+  padding: 8px 0 10px 14px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--trip-desc);
+  text-wrap: pretty;
+}
+
+.trips__now {
+  display: none; /* narrow screens only (below) */
+}
+
+/* the chapters: the only thing that scrolls */
+.trips__chapters {
+  position: relative; /* the chapters' offsetTop is measured from here */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-right: 40px;
+  outline: none;
+  container-type: inline-size;
+}
+
+.trips__chapters::-webkit-scrollbar {
+  display: none;
+}
+
+.trips__chapter {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 40px 0 20px;
+}
+
+/* the divider: halfway between the last chapter's photos and this one's label */
+.trips__chapter + .trips__chapter::before {
+  content: '';
+  height: 1px;
+  margin: -20px 0 4px;
+  background: var(--trip-line);
+}
+
+.trips__label {
+  display: flex;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--trip-meta);
+}
+
+.trips__grid {
+  --cols: 3;
+  --gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  /* 170px at the design's size: rows scale with the column so tiles stay roughly 4:3 */
+  grid-auto-rows: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols) * 0.654);
+  grid-auto-flow: dense;
+  gap: var(--gap);
+}
+
+.trips__tail {
+  height: 320px;
+}
+
+.gallery__card.trips__tile {
+  border-radius: 28px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trips__item.is-active .trips__link {
+    transform: none;
+  }
+
+  .trips__desc {
+    transition: opacity 0.3s ease;
+  }
+}
+
+/* under 900px: the index becomes a row of names across the top, and the grid two columns */
+@media (max-width: 899px) {
+  .trips {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .trips__index {
+    flex: none;
+    justify-content: flex-start;
+    padding: max(16px, env(safe-area-inset-top)) 0 10px;
+    border-bottom: 1px solid var(--trip-line);
+  }
+
+  .trips__list {
+    flex-direction: row;
+    gap: 22px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 4px clamp(16px, 5vw, 40px);
+  }
+
+  .trips__list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .trips__item.is-active .trips__link {
+    transform: none;
+  }
+
+  .trips__name {
+    font-size: 20px;
+  }
+
+  .trips__count {
+    font-size: 12px;
+  }
+
+  .trips__desc {
+    display: none;
+  }
+
+  .trips__now {
+    display: block;
+    min-height: 1.5em;
+    margin: 6px 0 0;
+    padding: 0 clamp(16px, 5vw, 40px);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--trip-desc);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .trips__now:empty {
+    display: none;
+  }
+
+  .trips__chapters {
+    flex: 1;
+    padding: 0 clamp(16px, 5vw, 40px);
+  }
+
+  .trips__chapter {
+    padding-top: 24px;
+  }
+
+  .trips__grid {
+    --cols: 2;
+    --gap: clamp(10px, 2.6vw, 20px);
+  }
+
+  /* a 3-column span can't happen here, but a 2-wide tile is the full row */
+  .gallery__card.trips__tile {
+    border-radius: clamp(18px, 4.5vw, 28px);
+  }
 }
 
 /* each photo is a button: clicking it opens the carousel */
@@ -246,19 +470,11 @@
   border: 0;
   font: inherit;
   color: #fff;
-  width: calc(387 * var(--u));
-  height: calc(290 * var(--u));
   overflow: hidden;
-  border-radius: calc(40 * var(--u));
   background: var(--bg-raised);
-  box-shadow: 0 calc(10 * var(--u)) calc(28 * var(--u)) rgba(0, 0, 0, 0.6);
   outline-offset: 4px;
   cursor: pointer;
   transform: translateZ(0);
-}
-
-.gallery__card--tall {
-  width: calc(218 * var(--u));
 }
 
 .gallery__card img,
@@ -316,12 +532,12 @@
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.gallery.is-armed .gallery__card:hover .gallery__shade,
+.trips.is-armed .gallery__card:hover .gallery__shade,
 .gallery__card:focus-visible .gallery__shade {
   opacity: 1;
 }
 
-.gallery.is-armed .gallery__card:hover .gallery__desc,
+.trips.is-armed .gallery__card:hover .gallery__desc,
 .gallery__card:focus-visible .gallery__desc {
   transform: none;
 }
@@ -331,7 +547,7 @@
   position: absolute;
   inset: 0;
   pointer-events: auto;
-  cursor: zoom-out; /* a click on the background goes back to the rows */
+  cursor: zoom-out; /* a click on the background goes back to the page */
   touch-action: pan-y; /* a sideways swipe moves along (photos.js) */
   -webkit-touch-callout: none;
 }
@@ -721,53 +937,5 @@
   .page__col {
     bottom: 0;
     padding-bottom: 24px;
-  }
-}
-
-/* Phones, and tablets held upright: no drifting rows, just a grid (the middle copy of each photo) that scrolls up and down.
-   photos.js matches this same query. */
-@media (max-width: 720px), (max-width: 1100px) and (orientation: portrait) {
-  .gallery {
-    --cols: 2;
-    --grid-gap: clamp(8px, 2.5vw, 16px);
-    top: clamp(56px, 12vh, 150px);
-    bottom: 0;
-    left: var(--col-left, 7vw);
-    width: var(--col-width, 86vw);
-    display: grid;
-    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-    /* (rows are sized from the width, not left to "auto": the cards' aspect ratio doesn't size an auto row, so they overlapped) */
-    grid-auto-rows: calc((var(--col-width, 86vw) - (var(--cols) - 1) * var(--grid-gap)) / var(--cols));
-    align-content: start;
-    gap: var(--grid-gap);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-    cursor: auto;
-    padding-bottom: 24px;
-    scrollbar-width: none;
-  }
-
-  .gallery__row {
-    display: contents;
-  }
-
-  .gallery__card:not([data-copy='1']) {
-    display: none;
-  }
-
-  .gallery__card,
-  .gallery__card--tall {
-    width: auto;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    border-radius: clamp(18px, 5vw, 28px);
-  }
-}
-
-@media (min-width: 560px) and (max-width: 1100px) and (orientation: portrait) {
-  .gallery {
-    --cols: 3;
   }
 }

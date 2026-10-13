@@ -1,127 +1,231 @@
-import { photos } from '../data/photos.js';
+import { trips } from '../data/photo-trips.js';
 import { photoElement } from '../ui/image.js';
 
 /**
- * Photos (the "Photos Board" design, variant 7a "grow"). Everything is sized from the design's 1280×800 board: one design
- * pixel is `--u` (pages.css), the same unit this file reads back as `u`.
+ * Photos (the "scroll-synced index" design, 13a). The photos are grouped by trip (src/data/photo-trips.js) into one long
+ * scroll of chapters on the right. The trips' names stay fixed on the left as an index: the trip you're scrolled into
+ * turns blue, steps in a little and opens its description. Clicking a name scrolls to that trip.
  *
- * - Two rows drift to the right and loop, each on its own (the bottom one a little slower). They keep drifting under the
- *   pointer; only the carousel eases them to a stop (and back up once it closes).
- * - You can also take hold of the rows: drag (mouse, finger or pen), or scroll with the wheel / trackpad. They coast on a
- *   flick, then carry on drifting. In the carousel, swipe or scroll sideways to move along.
- * - Hovering a photo fades in a dark gradient with its description.
- * - Clicking a photo lifts it out of its row and grows it into the centre while the rows fade away; its neighbours and
- *   the description fade in as it arrives. A neighbour, or ← / →, moves along (it loops). Esc, or a click on the
- *   background, sends it flying back to the nearest copy of it in the rows.
- * - Phones (and tablets held upright) get a plain grid that scrolls instead of the rows (pages.css); the carousel works the same.
+ * - The active trip is the last chapter whose top has passed a line 140px down the scroller (or the last one, once
+ *   you're at the bottom).
+ * - Hovering a photo fades in a dark gradient with its caption.
+ * - Clicking a photo lifts it out of the grid and grows it into the centre while the page fades away; its neighbours
+ *   (within that trip, looping) and the caption fade in as it arrives. A neighbour, ← / →, a swipe or a sideways scroll
+ *   moves along. Esc, or a click on the background, sends it flying back to its tile.
+ * - Under 900px wide the index becomes a row of names along the top, with the active trip's description under it, and
+ *   the grid drops to two columns (pages.css).
  */
 
 const canHover = window.matchMedia('(hover: hover)').matches;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const narrow = window.matchMedia('(max-width: 720px), (max-width: 1100px) and (orientation: portrait)'); // phones, and tablets held upright: the grid (pages.css)
+// the viewer sizes its photo to the screen's width on phones and upright tablets
+const upright = window.matchMedia('(max-width: 720px), (max-width: 1100px) and (orientation: portrait)');
 
-// Knobs, in design px (× u) and ms, from the board
-const DRIFT = 16; // px per second, top row
-const ROW_SPEED = [1, 0.82]; // the bottom row drifts a little slower
-const ROW_SHIFT = [22, -120]; // where each row's loop starts, so the two don't line up
-const EASE_RATE = 4; // how quickly the drift eases to a stop / back up (per second)
-const GAP = 36;
-const CARD_H = 290;
-const SLIDE_H = 519; // the photo in the carousel
+const ACTIVATE = 140; // px down the scroller: a chapter whose top has passed this line is the one you're in
+const JUMP_GAP = 20; // px left above a chapter you jump to from the index
+// The tiles' repeating pattern within a chapter (columns × rows), from the design. A tall slot holding a wide photo
+// becomes a wide one, and the other way round, so nothing gets cropped to a sliver.
+const SPANS = [
+  [2, 2],
+  [1, 1],
+  [1, 1],
+  [1, 2],
+  [2, 1],
+  [1, 1],
+  [1, 1],
+  [1, 1],
+  [1, 1],
+];
+
+// The viewer, in design px (× u: one px of a 1280×800 board) and ms
+const SLIDE_H = 519; // the photo in the viewer
 const SLIDE_CY = 318; // its centre, from the top
 const SIDE = 0.8; // neighbours' scale
 const SIDE_EDGE = 128; // how far in from the screen edge a neighbour reaches
 const FAR = 700; // where the hidden ones wait, beyond the edges
-const CARD_R = 40;
+const TILE_R = 28; // px: the tiles' corners
 const SLIDE_R = 48;
 const T = { grow: 620, reveal: 240, flyBack: 520 };
-const DRAG_START = 6; // px a pointer must travel before a press becomes a drag (until then it is still a click)
-const COAST = 3.2; // how quickly a flick slows down (per second)
-const SWIPE = 48; // px a swipe must travel to turn the carousel
+const SWIPE = 48; // px a swipe must travel to move along
 
-const controllers = new WeakMap(); // page element -> controller
+// Every photo, in page order, with the trip it belongs to
+const photos = trips.flatMap((trip, t) =>
+  trip.photos.map((photo) => ({ ...photo, src: `photos/${photo.src}`, alt: photo.alt ?? `a photo from ${trip.name}`, trip: t })),
+);
+const tripPhotos = trips.map((_, t) => photos.map((p, i) => (p.trip === t ? i : -1)).filter((i) => i >= 0));
 
 const tall = (i) => photos[i].shape === 'tall';
 const aspect = (i) => (tall(i) ? 3 / 4 : 4 / 3);
 
-// How wide each is shown, for picking a file (src/ui/image.js): a card is about a third of the screen on the rows (half
-// on a phone's grid); the carousel photo about half (nearly all of a phone).
-const CARD_SIZES = '(max-width: 720px) 48vw, ((max-width: 1100px) and (orientation: portrait)) 32vw, 32vw';
+// How wide each is shown, for picking a file (src/ui/image.js)
+const TILE_SIZES = '(max-width: 900px) 50vw, 40vw';
+const BIG_TILE_SIZES = '(max-width: 900px) 92vw, 46vw';
 const SLIDE_SIZES = '(max-width: 720px) 90vw, ((max-width: 1100px) and (orientation: portrait)) 90vw, 55vw';
 
-const picture = (photo, alt, sizes) => photoElement({ src: photo.src, alt }, { sizes, draggable: false });
+const controllers = new WeakMap(); // page element -> controller
 
-function buildCard(index, copy) {
-  const photo = photos[index];
-  const card = document.createElement('button');
-  card.type = 'button';
-  card.className = `gallery__card gallery__card--${tall(index) ? 'tall' : 'wide'}`;
-  card.dataset.index = String(index);
-  card.dataset.copy = String(copy);
-  const primary = copy === 1;
-  if (!primary) {
-    card.tabIndex = -1;
-    card.setAttribute('aria-hidden', 'true');
-  }
+function tileSpan(i, k) {
+  let [cols, rows] = SPANS[k % SPANS.length];
+  if (cols !== rows && (rows > cols) !== tall(i)) [cols, rows] = [rows, cols];
+  return { cols, rows };
+}
+
+function buildTile(i, k, lazy) {
+  const photo = photos[i];
+  const { cols, rows } = tileSpan(i, k);
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = 'gallery__card trips__tile';
+  tile.dataset.index = String(i);
+  tile.style.gridColumn = `span ${cols}`;
+  tile.style.gridRow = `span ${rows}`;
+  tile.dataset.cols = String(cols);
+  if (photo.caption) tile.setAttribute('aria-label', `${photo.alt}: ${photo.caption}`);
+  const img = photoElement({ src: photo.src, alt: photo.alt }, { sizes: cols > 1 ? BIG_TILE_SIZES : TILE_SIZES, draggable: false });
+  for (const el of [img, ...img.querySelectorAll?.('img') ?? []]) if (el.tagName === 'IMG') el.loading = lazy ? 'lazy' : 'eager';
   const shade = document.createElement('span');
   shade.className = 'gallery__shade';
   shade.setAttribute('aria-hidden', 'true');
-  const desc = document.createElement('span');
-  desc.className = 'gallery__desc';
-  desc.textContent = photo.caption;
-  shade.append(desc);
+  if (photo.caption) {
+    const desc = document.createElement('span');
+    desc.className = 'gallery__desc';
+    desc.textContent = photo.caption;
+    shade.append(desc);
+  }
   const rim = document.createElement('span');
   rim.className = 'gallery__rim';
-  card.append(picture(photo, primary ? photo.alt : '', CARD_SIZES), shade, rim);
-  return card;
-}
-
-/** The two rows: the first half of the photos on top, the rest below, each laid out several times over for the loop. */
-function buildRows() {
-  const split = Math.ceil(photos.length / 2);
-  return [
-    [0, split],
-    [split, photos.length],
-  ].map(([from, to], k) => {
-    const row = document.createElement('div');
-    row.className = 'gallery__row';
-    row.dataset.row = String(k);
-    const indices = Array.from({ length: to - from }, (_, j) => from + j);
-    return { el: row, indices, copies: 0, width: 0 };
-  });
-}
-
-function addCopy(row) {
-  for (const i of row.indices) row.el.append(buildCard(i, row.copies));
-  row.copies++;
-}
-
-/** Every card you can actually see, left to right (top to bottom on the phone grid). */
-function onScreenCards(page) {
-  const gallery = page.querySelector('.gallery');
-  const view = gallery.getBoundingClientRect();
-  const seen = [];
-  for (const card of gallery.querySelectorAll('.gallery__card')) {
-    const r = card.getBoundingClientRect();
-    if (r.width && r.right > view.left && r.left < view.right && r.bottom > view.top && r.top < view.bottom) seen.push({ card, r });
-  }
-  const order = narrow.matches ? (a, b) => a.r.top - b.r.top || a.r.left - b.r.left : (a, b) => a.r.left - b.r.left || a.r.top - b.r.top;
-  return seen.sort(order).map(({ card }) => card);
+  tile.append(img, shade, rim);
+  return tile;
 }
 
 function createPhotos(page) {
-  const gallery = document.createElement('div');
-  gallery.className = 'gallery';
-  gallery.setAttribute('role', 'region');
-  gallery.setAttribute('aria-label', 'Photos');
-  const rows = buildRows();
-  for (const row of rows) {
-    addCopy(row);
-    addCopy(row);
-    addCopy(row);
-    gallery.append(row.el);
+  const root = document.createElement('div');
+  root.className = 'trips';
+
+  // ---- the index ------------------------------------------------------------------------------------------------
+  const index = document.createElement('nav');
+  index.className = 'trips__index';
+  index.setAttribute('aria-label', 'Trips');
+  const indexList = document.createElement('div');
+  indexList.className = 'trips__list';
+  const entries = trips.map((trip, t) => {
+    const item = document.createElement('div');
+    item.className = 'trips__item';
+    const link = document.createElement('a');
+    link.className = 'trips__link';
+    link.href = `#${trip.slug}`;
+    link.dataset.trip = String(t);
+    const name = document.createElement('span');
+    name.className = 'trips__name';
+    name.textContent = trip.name;
+    const count = document.createElement('span');
+    count.className = 'trips__count';
+    count.textContent = String(trip.photos.length);
+    count.setAttribute('aria-label', `${trip.photos.length} photos`);
+    link.append(name, count);
+    item.append(link);
+    if (trip.description) {
+      const desc = document.createElement('div');
+      desc.className = 'trips__desc';
+      const text = document.createElement('p');
+      text.textContent = trip.description;
+      desc.append(text);
+      item.append(desc);
+    }
+    indexList.append(item);
+    return { item, link };
+  });
+  // narrow screens: the active trip's description, on one line under the row of names
+  const now = document.createElement('p');
+  now.className = 'trips__now';
+  now.setAttribute('aria-live', 'polite');
+  index.append(indexList, now);
+
+  // ---- the chapters ---------------------------------------------------------------------------------------------
+  const scroller = document.createElement('div');
+  scroller.className = 'trips__chapters';
+  scroller.setAttribute('role', 'region');
+  scroller.setAttribute('aria-label', 'Photos');
+  scroller.tabIndex = -1;
+  const chapters = trips.map((trip, t) => {
+    const chapter = document.createElement('section');
+    chapter.className = 'trips__chapter';
+    chapter.id = `trip-${trip.slug}`;
+    chapter.setAttribute('aria-label', trip.name);
+    const label = document.createElement('div');
+    label.className = 'trips__label';
+    const num = document.createElement('span');
+    num.textContent = String(t + 1).padStart(2, '0');
+    const nm = document.createElement('span');
+    nm.textContent = trip.name;
+    label.append(num, nm);
+    const grid = document.createElement('div');
+    grid.className = 'trips__grid';
+    tripPhotos[t].forEach((i, k) => grid.append(buildTile(i, k, t > 0)));
+    chapter.append(label, grid);
+    scroller.append(chapter);
+    return chapter;
+  });
+  const tail = document.createElement('div');
+  tail.className = 'trips__tail'; // room for the last trip to scroll up to the line and become the one you're in
+  scroller.append(tail);
+
+  root.append(index, scroller);
+
+  // ---- which trip you're in -------------------------------------------------------------------------------------
+  let active = -1;
+
+  function setActive(t) {
+    if (t === active) return;
+    active = t;
+    entries.forEach(({ item, link }, k) => {
+      item.classList.toggle('is-active', k === t);
+      if (k === t) link.setAttribute('aria-current', 'true');
+      else link.removeAttribute('aria-current');
+    });
+    now.textContent = trips[t]?.description ?? '';
+    // narrow screens: keep the active name in view along the row
+    const link = entries[t]?.link;
+    if (link && indexList.scrollWidth > indexList.clientWidth) {
+      const left = link.offsetLeft - (indexList.clientWidth - link.offsetWidth) / 2;
+      indexList.scrollTo({ left, behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
   }
 
+  function sync() {
+    const max = scroller.scrollHeight - scroller.clientHeight;
+    if (max > 0 && scroller.scrollTop >= max - tail.offsetHeight * 0.5) return setActive(chapters.length - 1);
+    const line = scroller.scrollTop + ACTIVATE;
+    let t = 0;
+    chapters.forEach((chapter, k) => {
+      if (chapter.offsetTop <= line) t = k;
+    });
+    setActive(t);
+  }
+
+  let syncQueued = false;
+  scroller.addEventListener(
+    'scroll',
+    () => {
+      if (syncQueued) return;
+      syncQueued = true;
+      requestAnimationFrame(() => {
+        syncQueued = false;
+        sync();
+      });
+    },
+    { passive: true },
+  );
+
+  indexList.addEventListener('click', (event) => {
+    const link = event.target.closest('.trips__link');
+    if (!link) return;
+    event.preventDefault();
+    const chapter = chapters[Number(link.dataset.trip)];
+    scroller.scrollTo({ top: Math.max(0, chapter.offsetTop - JUMP_GAP), behavior: reducedMotion ? 'auto' : 'smooth' });
+  });
+
+  // ---- the viewer ---------------------------------------------------------------------------------------------------
   const layer = document.createElement('div');
   layer.className = 'carousel';
   layer.hidden = true;
@@ -137,7 +241,9 @@ function createPhotos(page) {
     shade.className = 'carousel__shade';
     const rim = document.createElement('span');
     rim.className = 'gallery__rim';
-    slide.append(picture(photo, photo.alt, SLIDE_SIZES), shade, rim);
+    const img = photoElement({ src: photo.src, alt: photo.alt }, { sizes: SLIDE_SIZES, draggable: false });
+    for (const el of [img, ...img.querySelectorAll?.('img') ?? []]) if (el.tagName === 'IMG') el.loading = 'lazy';
+    slide.append(img, shade, rim);
     layer.append(slide);
     return slide;
   });
@@ -148,90 +254,28 @@ function createPhotos(page) {
   desc.append(descText);
   layer.append(desc);
 
-  const n = photos.length;
   let u = 1;
   let W = 0;
   let H = 0;
   let open = false;
   let closing = false;
-  let cur = 0;
-  let flight = null; // the card that lifted out of the row
+  let group = []; // the photos of the trip being viewed (indices into `photos`), in order
+  let cur = 0; // the one in the middle (an index into `photos`)
+  let flight = null; // the tile that lifted out of the grid
   let revealTimer = 0;
-
-  // ---- the drift --------------------------------------------------------------------
-  let off = 0;
-  let shift = 0; // px the visitor has moved the rows by hand (drag / wheel), on top of the drift
-  let vel = 0; // px per second the rows are still coasting at after a flick
-  let dragging = false;
-  let spd = 1;
   let armed = !canHover; // the pointer has moved since the page opened (it's usually resting where "photos" was clicked)
-  let frame = 0;
-  let last = 0;
 
   function measure() {
     W = page.clientWidth;
     H = page.clientHeight;
     if (!W || !H) return;
-    // one design px: the board is 1280×800; a phone instead sizes the carousel photo to its width
-    u = narrow.matches ? Math.min((0.88 * W) / (SLIDE_H * (4 / 3)), (0.5 * H) / SLIDE_H) : Math.min(W / 1280, H / 800);
+    // one design px: the board is 1280×800; a phone instead sizes the viewer's photo to its width
+    u = upright.matches ? Math.min((0.88 * W) / (SLIDE_H * (4 / 3)), (0.5 * H) / SLIDE_H) : Math.min(W / 1280, H / 800);
     page.style.setProperty('--u', `${u}px`);
-    if (narrow.matches) return;
-    for (const row of rows) {
-      const cards = [...row.el.children].slice(0, row.indices.length);
-      row.width = cards.reduce((sum, card) => sum + card.offsetWidth, 0) + cards.length * GAP * u;
-      // enough copies that the loop never shows its end: one behind, and the rest to cover the screen
-      while (row.width && row.copies * row.width < W + 2 * row.width) addCopy(row);
-    }
   }
 
-  function placeRows() {
-    rows.forEach((row, k) => {
-      if (!row.width || narrow.matches) {
-        row.el.style.transform = '';
-        return;
-      }
-      const travelled = off * ROW_SPEED[k] * u + shift;
-      const x = (((travelled % row.width) + row.width) % row.width) - row.width + ROW_SHIFT[k] * u;
-      row.el.style.transform = `translate3d(${x.toFixed(2)}px, 0, 0)`;
-    });
-  }
-
-  function tick(now) {
-    frame = requestAnimationFrame(tick);
-    const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
-    last = now;
-    if (narrow.matches) return;
-    const want = open || dragging || reducedMotion ? 0 : 1;
-    spd += (want - spd) * Math.min(1, dt * EASE_RATE);
-    off += dt * spd * DRIFT;
-    if (!dragging && vel) {
-      shift += vel * dt;
-      vel *= Math.exp(-COAST * dt);
-      if (Math.abs(vel) < 4) vel = 0;
-    }
-    placeRows();
-  }
-
-  function start() {
-    measure();
-    off = 0;
-    shift = 0;
-    vel = 0;
-    spd = 1;
-    last = 0;
-    placeRows();
-    cancelAnimationFrame(frame);
-    frame = requestAnimationFrame(tick);
-  }
-
-  function stop() {
-    cancelAnimationFrame(frame);
-    frame = 0;
-  }
-
-  // ---- the carousel -------------------------------------------------------------------
   const size = (i) => ({ w: SLIDE_H * u * aspect(i), h: SLIDE_H * u });
-  const centreY = () => (narrow.matches ? H * 0.4 : SLIDE_CY * u);
+  const centreY = () => (upright.matches ? H * 0.4 : SLIDE_CY * u);
 
   /** Where photo i sits when it is d places from the centre. */
   function slideTransform(i, d) {
@@ -245,25 +289,39 @@ function createPhotos(page) {
     return `translate(${cx - w / 2}px, ${centreY() - h / 2}px) scale(${s})`;
   }
 
-  /** The transform that puts photo i's slide exactly over a card. */
-  function cardTransform(i, card) {
+  /** The transform that puts photo i's slide exactly over a tile. */
+  function tileTransform(i, tile) {
     const box = layer.getBoundingClientRect();
-    const r = card.getBoundingClientRect();
+    const r = tile.getBoundingClientRect();
     const { w, h } = size(i);
-    const scale = r.height / h;
+    // the tile crops the photo: grow from the tile's size, matching whichever side the photo fills
+    const scale = Math.max(r.width / w, r.height / h);
     return {
       transform: `translate(${r.left - box.left + r.width / 2 - w / 2}px, ${r.top - box.top + r.height / 2 - h / 2}px) scale(${scale})`,
-      radius: CARD_R * u / scale,
+      radius: TILE_R / scale,
     };
   }
 
-  const place = (d) => (d > n / 2 ? d - n : d < -n / 2 ? d + n : d);
+  /** How many places along the trip photo i is from the centre (looping, so a short trip still has both neighbours). */
+  function place(i) {
+    const n = group.length;
+    const at = group.indexOf(i);
+    if (at < 0) return Infinity;
+    let d = at - group.indexOf(cur);
+    if (d > n / 2) d -= n;
+    if (d < -n / 2) d += n;
+    if (n === 2 && d === -1) d = 1; // a pair: the other one waits on the right
+    return d;
+  }
 
-  /** Lay every slide out around `cur`. `revealed`: whether the neighbours and description show yet. */
+  /** Lay every slide out around `cur`. `revealed`: whether the neighbours and caption show yet. */
   function layout(revealed) {
     slides.forEach((slide, i) => {
-      const d = place(i - cur);
+      const d = place(i);
+      const inTrip = d !== Infinity;
       const side = Math.abs(d) === 1;
+      slide.hidden = !inTrip;
+      if (!inTrip) return;
       slide.style.width = `${size(i).w}px`;
       slide.style.height = `${size(i).h}px`;
       slide.style.transform = slideTransform(i, d);
@@ -276,7 +334,7 @@ function createPhotos(page) {
       if (side) slide.setAttribute('aria-label', `${d < 0 ? 'Previous' : 'Next'} photo: ${photos[i].alt}`);
       else slide.removeAttribute('aria-label');
     });
-    const inset = narrow.matches ? W * 0.06 : 240 * u;
+    const inset = upright.matches ? W * 0.06 : 240 * u;
     Object.assign(desc.style, {
       top: `${centreY() + (SLIDE_H / 2) * u + 37 * u}px`,
       left: `${inset}px`,
@@ -285,25 +343,26 @@ function createPhotos(page) {
     });
   }
 
-  function openAt(card) {
+  function openAt(tile) {
     if (open || closing) return;
-    const i = Number(card.dataset.index);
+    const i = Number(tile.dataset.index);
     measure();
     open = true;
+    group = tripPhotos[photos[i].trip];
     cur = i;
-    flight = card;
+    flight = tile;
     descText.textContent = photos[i].caption;
     layer.hidden = false;
-    page.classList.add('is-carousel'); // the rows fade away (pages.css)
-    gallery.inert = true;
+    page.classList.add('is-carousel'); // the page fades away (pages.css)
+    root.inert = true;
     layer.classList.add('is-still'); // placed without transitions this once
     layout(false);
     void layer.offsetWidth;
     layer.classList.remove('is-still');
-    card.style.opacity = '0'; // it has lifted out of its row
+    tile.style.opacity = '0'; // it has lifted out of the grid
 
     const slide = slides[i];
-    const from = cardTransform(i, card);
+    const from = tileTransform(i, tile);
     if (!reducedMotion) {
       slide.animate(
         [
@@ -319,8 +378,8 @@ function createPhotos(page) {
   }
 
   function go(dir) {
-    if (!open || closing) return;
-    cur = (cur + dir + n) % n;
+    if (!open || closing || group.length < 2) return;
+    cur = group[(group.indexOf(cur) + dir + group.length) % group.length];
     descText.textContent = photos[cur].caption;
     layout(true);
     descText.animate([{ opacity: 0, transform: `translateX(${dir * 14 * u}px)` }, { opacity: 1, transform: 'none' }], {
@@ -330,18 +389,13 @@ function createPhotos(page) {
     if (layer.contains(document.activeElement)) slides[cur].focus({ preventScroll: true });
   }
 
-  /** The copy of photo i in the rows nearest the middle of the screen (the design's pick), or null if none shows. */
-  function homeCard(i) {
-    const box = page.getBoundingClientRect();
-    let best = null;
-    let bestD = Infinity;
-    for (const card of onScreenCards(page)) {
-      if (Number(card.dataset.index) !== i) continue;
-      const r = card.getBoundingClientRect();
-      const d = Math.abs(r.left + r.width / 2 - box.left - W / 2) + Math.abs(r.top + r.height / 2 - box.top - H / 2) * 0.5;
-      if (d < bestD) [best, bestD] = [card, d];
-    }
-    return best;
+  /** Photo i's tile, if any of it is on screen. */
+  function homeTile(i) {
+    const tile = scroller.querySelector(`.trips__tile[data-index="${i}"]`);
+    if (!tile) return null;
+    const view = scroller.getBoundingClientRect();
+    const r = tile.getBoundingClientRect();
+    return r.bottom > view.top && r.top < view.bottom ? tile : null;
   }
 
   function close() {
@@ -351,12 +405,12 @@ function createPhotos(page) {
     const hadFocus = layer.contains(document.activeElement);
     const i = cur;
     const slide = slides[i];
-    const target = homeCard(i);
+    const target = homeTile(i);
     if (flight && flight !== target) flight.style.opacity = '';
     flight = target;
-    layout(false); // neighbours and description fade
-    page.classList.remove('is-carousel'); // the rows fade back in
-    gallery.inert = false;
+    layout(false); // neighbours and caption fade
+    page.classList.remove('is-carousel'); // the page fades back in
+    root.inert = false;
 
     const done = () => {
       closing = false;
@@ -364,14 +418,14 @@ function createPhotos(page) {
       layer.hidden = true;
       if (target) target.style.opacity = '';
       flight = null;
-      if (hadFocus) (target ?? gallery.querySelector(`.gallery__card[data-index="${i}"][data-copy="1"]`))?.focus({ preventScroll: true });
+      if (hadFocus) (target ?? scroller.querySelector(`.trips__tile[data-index="${i}"]`))?.focus({ preventScroll: true });
     };
     if (!target || reducedMotion) {
       slide.style.opacity = '0';
       setTimeout(done, reducedMotion ? 0 : 400);
       return;
     }
-    const to = cardTransform(i, target);
+    const to = tileTransform(i, target);
     const flyBack = slide.animate(
       [
         { transform: slide.style.transform, borderRadius: `${SLIDE_R * u}px` },
@@ -388,7 +442,7 @@ function createPhotos(page) {
     };
   }
 
-  /** Straight back to the rows, no animation (the page is opening fresh, or leaving). */
+  /** Straight back to the page, no animation (it's opening fresh, or leaving). */
   function reset() {
     clearTimeout(revealTimer);
     for (const slide of slides) for (const a of slide.getAnimations()) a.cancel();
@@ -396,111 +450,43 @@ function createPhotos(page) {
     closing = false;
     layer.hidden = true;
     flight = null;
-    gallery.inert = false;
-    gallery.style.transition = 'none';
+    root.inert = false;
+    root.style.transition = 'none';
     page.classList.remove('is-carousel');
-    void gallery.offsetWidth;
-    gallery.style.transition = '';
-    for (const card of gallery.querySelectorAll('.gallery__card')) card.style.opacity = '';
+    void root.offsetWidth;
+    root.style.transition = '';
+    for (const tile of scroller.querySelectorAll('.trips__tile')) tile.style.opacity = '';
   }
 
-  // ---- wiring -------------------------------------------------------------------------
+  // ---- wiring -------------------------------------------------------------------------------------------------------
   if (canHover) {
     page.addEventListener('pointermove', (event) => {
       if (event.pointerType !== 'mouse' || armed || !(event.movementX || event.movementY)) return;
       armed = true;
-      gallery.classList.add('is-armed');
+      root.classList.add('is-armed');
     });
   }
 
-  gallery.addEventListener('click', (event) => {
-    const card = event.target.closest('.gallery__card');
-    if (card) openAt(card);
+  scroller.addEventListener('click', (event) => {
+    const tile = event.target.closest('.trips__tile');
+    if (tile) openAt(tile);
   });
 
   layer.addEventListener('click', (event) => {
     if (swiped) return;
     const slide = event.target.closest('.carousel__photo');
     if (slide) {
-      const d = place(Number(slide.dataset.index) - cur);
+      const d = place(Number(slide.dataset.index));
       if (Math.abs(d) === 1) go(d);
       return;
     }
     close(); // the background
   });
 
-
-  // ---- taking hold of the rows (drag, flick, wheel) ------------------------------------
-  let press = null; // { id, x, from, lastX, lastT }
-  let swallowClick = false; // a drag ends with a click on whatever is under the pointer: don't treat it as opening a photo
-
-  gallery.addEventListener('pointerdown', (event) => {
-    if (narrow.matches || open || (event.pointerType === 'mouse' && event.button !== 0)) return;
-    press = { id: event.pointerId, x: event.clientX, from: shift, lastX: event.clientX, lastT: event.timeStamp };
-    swallowClick = false;
-  });
-
-  gallery.addEventListener('pointermove', (event) => {
-    if (!press || event.pointerId !== press.id) return;
-    const dx = event.clientX - press.x;
-    if (!dragging) {
-      if (Math.abs(dx) < DRAG_START) return;
-      dragging = true;
-      vel = 0;
-      gallery.setPointerCapture(event.pointerId);
-      gallery.classList.add('is-dragging');
-    }
-    const dt = Math.max(1, event.timeStamp - press.lastT) / 1000;
-    vel = vel * 0.6 + ((event.clientX - press.lastX) / dt) * 0.4;
-    press.lastX = event.clientX;
-    press.lastT = event.timeStamp;
-    shift = press.from + dx;
-    placeRows();
-  });
-
-  const release = (event) => {
-    if (!press || event.pointerId !== press.id) return;
-    if (dragging) {
-      swallowClick = true;
-      setTimeout(() => (swallowClick = false), 60);
-      if (event.timeStamp - press.lastT > 90 || reducedMotion) vel = 0; // it stopped before letting go
-      vel = Math.max(-3000, Math.min(3000, vel));
-    }
-    dragging = false;
-    press = null;
-    gallery.classList.remove('is-dragging');
-  };
-  gallery.addEventListener('pointerup', release);
-  gallery.addEventListener('pointercancel', release);
-
-  gallery.addEventListener(
-    'click',
-    (event) => {
-      if (!swallowClick) return;
-      event.stopPropagation();
-      event.preventDefault();
-    },
-    true,
-  );
-
-  gallery.addEventListener(
-    'wheel',
-    (event) => {
-      // sideways only: a plain wheel (vertical) scrolls on to the next page (router.js), and dragging moves the rows too
-      if (narrow.matches || open || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
-      event.preventDefault();
-      vel = 0;
-      shift -= event.deltaX * (event.deltaMode === 1 ? 16 : 1);
-      placeRows();
-    },
-    { passive: false },
-  );
-
-  // ---- swiping the carousel -------------------------------------------------------------
+  // swipe / scroll sideways to move along
   let swipe = null;
   let swiped = false;
   let wheelAt = 0;
-
   layer.addEventListener('pointerdown', (event) => {
     swipe = { id: event.pointerId, x: event.clientX, y: event.clientY };
     swiped = false;
@@ -540,7 +526,7 @@ function createPhotos(page) {
   new ResizeObserver(() => {
     if (page.hidden) return;
     measure();
-    placeRows();
+    sync();
     if (open && !closing) {
       layer.classList.add('is-still');
       layout(true);
@@ -550,14 +536,20 @@ function createPhotos(page) {
   }).observe(page);
 
   return {
-    gallery,
+    root,
     layer,
-    start,
-    stop,
+    index,
+    scroller,
+    start() {
+      measure();
+      scroller.scrollTop = 0;
+      active = -1;
+      sync();
+    },
     reset() {
       reset();
       armed = !canHover;
-      gallery.classList.toggle('is-armed', armed);
+      root.classList.toggle('is-armed', armed);
     },
     get showing() {
       return open;
@@ -567,15 +559,26 @@ function createPhotos(page) {
       close();
       return true;
     },
+    /** The tiles you can see, top to bottom. */
+    onScreen() {
+      const view = scroller.getBoundingClientRect();
+      return [...scroller.querySelectorAll('.trips__tile')].filter((tile) => {
+        const r = tile.getBoundingClientRect();
+        return r.width && r.bottom > view.top && r.top < view.bottom;
+      });
+    },
   };
 }
 
 export const photosPage = {
   stagger: 90,
-  // leaving: whatever is on screen dissolves left to right — the carousel if it's up, else the visible photos
+  // leaving: the viewer if it's up, else the index and the photos you can see, top to bottom
   exit: {
-    targets: (page) => (controllers.get(page)?.showing ? [controllers.get(page).layer] : onScreenCards(page)),
-    stagger: 90,
+    targets: (page) => {
+      const c = controllers.get(page);
+      return c?.showing ? [c.layer] : c ? [c.index, ...c.onScreen()] : [];
+    },
+    stagger: 60,
     duration: 340,
     slide: 0,
     easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
@@ -585,21 +588,21 @@ export const photosPage = {
     page.classList.add('page--photos');
     const controller = createPhotos(page);
     controllers.set(page, controller);
-    page.append(controller.gallery, controller.layer);
+    page.append(controller.root, controller.layer);
   },
 
-  // the photos you can see fade in, left to right (the rows are placed in onShow, just before this is read)
-  blocks: (page) => onScreenCards(page),
+  // the index, then the photos you can see, come in one after another (laid out in onShow, just before this is read)
+  blocks: (page) => {
+    const c = controllers.get(page);
+    return c ? [c.index, ...c.onScreen()] : [];
+  },
 
   onShow(page) {
     const controller = controllers.get(page);
     controller.reset();
     controller.start();
   },
-  onHide(page) {
-    controllers.get(page)?.stop(); // freeze the rows so the photos fade where they are
-  },
 
-  /** Esc closes the carousel before it closes the page. */
+  /** Esc closes the viewer before it closes the page. */
   back: (page) => controllers.get(page)?.back() ?? false,
 };

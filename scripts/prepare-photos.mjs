@@ -10,7 +10,7 @@
  *   <name>-800.avif  <name>-800.webp  <name>-1600.avif  <name>-1600.webp
  *
  * turned the right way up (phones store that separately), with the location and camera data stripped out. Then point
- * the photo at it WITHOUT an extension, e.g. { src: 'photos/beach', ... } in src/data/photos.js or src/data/about.js,
+ * the photo at it WITHOUT an extension, e.g. { src: 'photos/beach', ... } in src/data/about.js, or { src: 'beach' } in src/data/photo-trips.js,
  * and the site picks the right file for the screen (src/ui/image.js).
  *
  * Photos that are already done are skipped, unless the original has changed since. Run it again after adding more.
