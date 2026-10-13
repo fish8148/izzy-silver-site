@@ -1,13 +1,18 @@
 /**
  * The edge menu: push the cursor against the left or right edge of the screen and the pages slide out from that edge,
- * in a straight column down nearly the full height of the screen, centred on where the cursor touched (clamped so nothing clips), over a soft dark shade. The page
- * you're on is light blue. Move the cursor away from the menu and it folds back after a moment.
+ * in a straight column down nearly the full height of the screen, centred on where the cursor touched (clamped so
+ * nothing clips), over a soft dark shade. The page you're on is light blue. Move the cursor away from the menu and it
+ * folds back after a moment.
+ *
+ * A thin glowing "seam" rests on each edge to say the menu is there. It breathes, and stretches toward the cursor as the
+ * cursor nears its edge. The scroll pull (src/ui/scroll-pull.js) also opens this menu, out of the right-hand seam; it
+ * drives the same elements frame by frame through `beginPull` / `endPull` and the element handles returned below.
  *
  * Mouse / trackpad only: devices without a fine pointer keep the old header menu (see LEGACY_MENU_ENABLED in
  * src/pages/router.js).
  *
- * Three elements per link, one transform each, so nothing composes by surprise: the item slides in, the link scales on
- * hover, and the span inside floats and tilts.
+ * Three elements per link, one transform each, so nothing composes by surprise: the item slides in (and rolls, in a
+ * pull), the link scales on hover, and the span inside floats and tilts.
  */
 
 const ITEMS = [
@@ -25,7 +30,14 @@ const OPEN = { duration: 400, stagger: 50, travel: 64 };
 const CLOSE = { duration: 220 };
 const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
+// The seam at rest, and how it answers the cursor (the Edge Board, 8a)
+export const SEAM = { height: 200, width: 2, inset: 6, opacity: 0.28, reach: 220, grow: 200, widthGrow: 2, keepOff: 120 };
+
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const smooth = (x) => {
+  x = Math.max(0, Math.min(1, x));
+  return x * x * (3 - 2 * x);
+};
 
 export function createEdgeMenu({ router }) {
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return null;
@@ -33,7 +45,19 @@ export function createEdgeMenu({ router }) {
   const root = document.createElement('nav');
   root.className = 'edge-menu';
   root.setAttribute('aria-label', 'Pages');
+  root.dataset.side = 'right';
   root.inert = true;
+
+  // the seams: an outer layer that hides them while the menu is open, one that breathes, and the two lines
+  const indicator = document.createElement('div');
+  indicator.className = 'edge-menu__indicator';
+  const breathe = document.createElement('div');
+  breathe.className = 'edge-menu__breathe';
+  const seams = { right: document.createElement('div'), left: document.createElement('div') };
+  seams.right.className = 'edge-menu__seam edge-menu__seam--right';
+  seams.left.className = 'edge-menu__seam edge-menu__seam--left';
+  breathe.append(seams.left, seams.right);
+  indicator.append(breathe);
 
   const shade = document.createElement('div');
   shade.className = 'edge-menu__shade';
@@ -61,13 +85,44 @@ export function createEdgeMenu({ router }) {
     return { li, link, id };
   });
 
-  root.append(shade, list);
+  root.append(indicator, shade, list);
   document.body.append(root);
 
   let open = false;
   let side = 'right';
   let closeTimer = 0;
+  let pulling = false; // the scroll pull has the menu (it draws everything itself until endPull)
+  let locked = false; // mid page change: no hover-open, no clicks
+  let onBeforeShow = () => true;
+  let cursor = { x: -1, y: 0 };
+  let seamOverride = null; // the pull's right-hand seam, while it has one
 
+  // ---- the seams ------------------------------------------------------------------------------------------------
+  function drawSeam(el, { h, center, w, op }) {
+    el.style.height = `${h}px`;
+    el.style.top = `${center - h / 2}px`;
+    el.style.width = `${w}px`;
+    el.style.opacity = String(op);
+  }
+
+  /** Each seam at rest, or reaching for the cursor as it nears that edge. */
+  function drawSeams() {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const { x, y } = cursor;
+    const near = (dist) => (x < 0 || open || pulling ? 0 : smooth(1 - dist / SEAM.reach));
+    const cy = Math.max(SEAM.keepOff, Math.min(H - SEAM.keepOff, y));
+    const at = (p) => ({
+      h: SEAM.height + p * SEAM.grow,
+      center: H / 2 + (cy - H / 2) * p,
+      w: SEAM.width + p * SEAM.widthGrow,
+      op: SEAM.opacity + p * (1 - SEAM.opacity),
+    });
+    drawSeam(seams.left, at(near(x)));
+    drawSeam(seams.right, seamOverride ?? at(near(W - x)));
+  }
+
+  // ---- open / close by hovering the edge -------------------------------------------------------------------------
   function place(y) {
     root.dataset.side = side;
     const h = list.offsetHeight;
@@ -88,13 +143,14 @@ export function createEdgeMenu({ router }) {
 
   function show(edge, y) {
     clearTimeout(closeTimer);
-    if (open) return;
+    if (open || locked || !onBeforeShow()) return;
     open = true;
     side = edge;
     markCurrent();
     place(y);
     root.inert = false;
     root.classList.add('is-open');
+    drawSeams();
     const dir = side === 'right' ? 1 : -1;
     items.forEach(({ li }, k) => {
       li.getAnimations().forEach((a) => a.cancel());
@@ -110,6 +166,7 @@ export function createEdgeMenu({ router }) {
 
   function hide() {
     clearTimeout(closeTimer);
+    closeTimer = 0;
     if (!open) return;
     open = false;
     root.classList.remove('is-open');
@@ -120,6 +177,7 @@ export function createEdgeMenu({ router }) {
       li.getAnimations().forEach((a) => a.cancel());
       li.animate([{ opacity: from }, { opacity: 0 }], { duration: CLOSE.duration, easing: 'ease', fill: 'both' });
     }
+    drawSeams();
   }
 
   function scheduleHide() {
@@ -141,34 +199,104 @@ export function createEdgeMenu({ router }) {
   document.addEventListener('pointermove', (event) => {
     if (event.pointerType !== 'mouse') return;
     const { clientX: x, clientY: y } = event;
+    cursor = { x, y };
     if (!open) {
       if (x <= TRIGGER) show('left', y);
       else if (x >= window.innerWidth - TRIGGER) show('right', y);
-      return;
-    }
-    if (within(x, y)) {
+    } else if (within(x, y)) {
       clearTimeout(closeTimer);
       closeTimer = 0;
     } else scheduleHide();
+    drawSeams();
+  });
+  document.documentElement.addEventListener('mouseleave', () => {
+    cursor = { x: -1, y: cursor.y };
+    drawSeams();
   });
 
   list.addEventListener('click', (event) => {
     const link = event.target.closest('.edge-menu__link');
     if (!link) return;
     event.preventDefault();
+    if (locked || pulling) return;
     const id = link.dataset.page || null;
     hide();
     if (id !== router.currentId) router.go(id);
   });
 
-  window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && open) {
-      event.stopImmediatePropagation(); // Esc folds the menu, not the page underneath it
-      hide();
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.key === 'Escape' && open) {
+        event.stopImmediatePropagation(); // Esc folds the menu, not the page underneath it
+        hide();
+      }
+    },
+    true,
+  );
+
+  window.addEventListener('resize', () => {
+    if (open) hide();
+    drawSeams();
+  });
+  drawSeams();
+
+  // ---- for the scroll pull -----------------------------------------------------------------------------------------
+  /** Hand the menu over to the pull: right-hand side, centred, nothing animating but what the pull draws. */
+  function beginPull() {
+    pulling = true;
+    hide();
+    side = 'right';
+    root.dataset.side = 'right';
+    root.classList.add('is-pulling');
+    markCurrent();
+    for (const { li } of items) li.getAnimations().forEach((a) => a.cancel());
+    list.style.top = `${Math.round((window.innerHeight - list.offsetHeight) / 2)}px`;
+    // where each label rests (its centre, from the top of the screen), before anything moves
+    return items.map(({ li }) => {
+      const r = li.getBoundingClientRect();
+      return r.top + r.height / 2;
+    });
+  }
+
+  /** Give the menu back: every style the pull set is cleared, so it rests closed exactly as it would have. */
+  function endPull() {
+    pulling = false;
+    seamOverride = null;
+    root.classList.remove('is-pulling');
+    breathe.classList.remove('is-still');
+    shade.style.opacity = '';
+    for (const { li, link } of items) {
+      li.style.opacity = '';
+      li.style.transform = '';
+      link.style.color = '';
+      link.style.transform = '';
     }
-  }, true);
+    drawSeams();
+  }
 
-  window.addEventListener('resize', () => open && hide());
-
-  return { show, hide };
+  return {
+    show,
+    hide,
+    beginPull,
+    endPull,
+    items,
+    shade,
+    get isOpen() {
+      return open;
+    },
+    /** The right-hand seam, drawn by the pull (null hands it back to the cursor); `still` stops its breathing. */
+    setSeam(seam, still) {
+      seamOverride = seam;
+      breathe.classList.toggle('is-still', !!still);
+      drawSeams();
+    },
+    set locked(value) {
+      locked = value;
+    },
+    /** Called before the edge opens the menu; returning false keeps it shut. */
+    set onBeforeShow(fn) {
+      onBeforeShow = fn;
+    },
+  };
 }

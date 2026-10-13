@@ -906,11 +906,12 @@ export function createPageRouter({ hero, pages }) {
   }
 
 
-  // ---- scrolling through the pages ------------------------------------------------------------------------------
-  // Scroll down (wheel, trackpad, or a swipe up) to go home -> about -> say hi -> photos -> my things; scroll up to go
-  // back. Inside a page that scrolls (a tall column, the phone photo grid) it only moves on once you've reached that
-  // end and scroll again. One page per gesture, so a trackpad's coasting tail doesn't carry you on.
-  const SCROLL_ORDER = ['about', 'say-hi', 'photos', 'my-things'];
+  // ---- swiping through the pages (touch) -------------------------------------------------------------------------
+  // On a touch screen, swipe up to go home -> about -> photos -> my things -> say hi, and down to go back. Inside a page
+  // that scrolls (a tall column, the phone photo grid) it only moves on once you've reached that end and swipe again.
+  // (With a mouse or trackpad, scrolling past the end of a page pulls the next one in through the edge menu instead:
+  // src/ui/scroll-pull.js.)
+  const SCROLL_ORDER = ['about', 'photos', 'my-things', 'say-hi'];
 
   function scrollStep(dir) {
     if (busy || menuOpen) return;
@@ -932,39 +933,6 @@ export function createPageRouter({ hero, pages }) {
     }
     return { top: true, bottom: true };
   }
-
-  /** Can a scroll in direction `dir` (1 down, -1 up) that began on `target` move to another page? */
-  function canScrollThrough(target, dir) {
-    if (busy || menuOpen || !(target instanceof Element)) return false;
-    if (target.closest('.carousel:not([hidden]), .interact-menu, canvas:not(.hero__canvas)')) return false;
-    return scrollEdges(target)[dir > 0 ? 'bottom' : 'top'];
-  }
-
-  let wheelAcc = 0;
-  let wheelAt = 0;
-  let wheelOk = false;
-  let wheelLock = 0;
-  hero.addEventListener(
-    'wheel',
-    (event) => {
-      if (event.ctrlKey || !event.deltaY || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
-      const dir = Math.sign(event.deltaY);
-      const fresh = event.timeStamp - wheelAt > 220 || dir !== Math.sign(wheelAcc || dir); // a new gesture, not a continuing one
-      wheelAt = event.timeStamp;
-      if (fresh) {
-        wheelAcc = 0;
-        wheelOk = event.timeStamp > wheelLock && canScrollThrough(event.target, dir);
-      }
-      if (!wheelOk) return;
-      wheelAcc += event.deltaY * (event.deltaMode === 1 ? 16 : 1);
-      if (Math.abs(wheelAcc) < 70) return;
-      wheelOk = false;
-      wheelLock = event.timeStamp + 700;
-      wheelAcc = 0;
-      scrollStep(dir);
-    },
-    { passive: true },
-  );
 
   let swipe = null;
   hero.addEventListener(
@@ -993,11 +961,33 @@ export function createPageRouter({ hero, pages }) {
   );
 
   /** Go to page `id`, or home for null, from wherever we are (the edge menu's links). False if mid-transition. */
-  function go(id) {
+  function go(id, { instant = false } = {}) {
     if (busy) return false;
-    if (!id) return current ? close() : false;
-    if (!pages[id]) return false;
-    return current ? switchTo(id) : open(id);
+    if (!id && !current) return false;
+    if (id && !pages[id]) return false;
+    const started = !id ? close() : current ? switchTo(id) : open(id);
+    return instant ? fastForward(id ?? null).then(() => started) : started;
+  }
+
+  /**
+   * Skip every transition the router has in flight until it has fully settled on `id` (null = home). For when something
+   * else is covering the change with its own animation (the scroll pull fades the whole hero out and back in around it):
+   * each of the router's steps waits on its animations, so finishing them hurries it through every step in turn.
+   */
+  async function fastForward(id) {
+    const stillGoing = (a) =>
+      a.playState !== 'finished' &&
+      !(a instanceof CSSAnimation) &&
+      !(a instanceof CSSTransition) &&
+      a.effect?.getTiming().iterations !== Infinity;
+    let quiet = 0;
+    for (let pass = 0; pass < 200 && quiet < 3; pass++) {
+      const running = hero.getAnimations({ subtree: true }).filter(stillGoing);
+      running.forEach((a) => a.finish());
+      const settled = !busy && (current?.id ?? null) === id && !running.length;
+      quiet = settled ? quiet + 1 : 0;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   return {
@@ -1009,6 +999,9 @@ export function createPageRouter({ hero, pages }) {
     },
     get isOpen() {
       return !!current || busy;
+    },
+    get isBusy() {
+      return busy;
     },
   };
 }

@@ -10,6 +10,57 @@
   pointer-events: none; /* never blocks the page while closed (and only the links take clicks while open) */
 }
 
+/* the seams: a thin glowing line resting on each edge, so you know the menu is there. edge-menu.js sizes and places
+   them (they reach toward the cursor as it nears an edge, and the scroll pull stretches the right one). */
+.edge-menu__indicator {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.25s ease;
+}
+
+.edge-menu.is-open .edge-menu__indicator {
+  opacity: 0;
+}
+
+.edge-menu__breathe {
+  position: absolute;
+  inset: 0;
+  animation: edge-breathe 4.5s ease-in-out infinite;
+}
+
+.edge-menu__breathe.is-still {
+  animation: none;
+}
+
+@keyframes edge-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.edge-menu__seam {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 200px;
+  border-radius: 4px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0));
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
+  opacity: 0.28;
+}
+
+.edge-menu__seam--right {
+  right: 6px;
+}
+
+.edge-menu__seam--left {
+  left: 6px;
+}
+
 /* the shade: dark at the edge, fading to nothing toward the middle; no panel, no hard edge */
 .edge-menu__shade {
   position: absolute;
@@ -146,6 +197,22 @@
 
 @media (prefers-reduced-motion: reduce) {
   .edge-menu__float {
+    animation: none;
+  }
+}
+
+/* the scroll pull (src/ui/scroll-pull.js) draws every frame itself: no transitions, and no catching the pointer */
+.edge-menu.is-pulling .edge-menu__shade,
+.edge-menu.is-pulling .edge-menu__link {
+  transition: none;
+}
+
+.edge-menu.is-pulling .edge-menu__link {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edge-menu__breathe {
     animation: none;
   }
 }
