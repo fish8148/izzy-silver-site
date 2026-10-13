@@ -5,8 +5,7 @@
  * folds back after a moment.
  *
  * A thin glowing "seam" rests on each edge to say the menu is there. It breathes, and stretches toward the cursor as the
- * cursor nears its edge. The scroll pull (src/ui/scroll-pull.js) also opens this menu, out of the right-hand seam; it
- * drives the same elements frame by frame through `beginPull` / `endPull` and the element handles returned below.
+ * cursor nears its edge. (The scroll pull, src/ui/scroll-pull.js, dims them while its overlay is up: `dimSeams`.)
  *
  * On a touch screen, tap right at the left or right edge (where the seams are) to open it, and tap anywhere else to
  * close it.
@@ -90,11 +89,9 @@ export function createEdgeMenu({ router }) {
   let open = false;
   let side = 'right';
   let closeTimer = 0;
-  let pulling = false; // the scroll pull has the menu (it draws everything itself until endPull)
   let locked = false; // mid page change: no hover-open, no clicks
   let onBeforeShow = () => true;
   let cursor = { x: -1, y: 0 };
-  let seamOverride = null; // the pull's right-hand seam, while it has one
 
   // ---- the seams ------------------------------------------------------------------------------------------------
   function drawSeam(el, { h, center, w, op }) {
@@ -109,7 +106,7 @@ export function createEdgeMenu({ router }) {
     const W = window.innerWidth;
     const H = window.innerHeight;
     const { x, y } = cursor;
-    const near = (dist) => (x < 0 || open || pulling ? 0 : smooth(1 - dist / SEAM.reach));
+    const near = (dist) => (x < 0 || open ? 0 : smooth(1 - dist / SEAM.reach));
     const cy = Math.max(SEAM.keepOff, Math.min(H - SEAM.keepOff, y));
     const at = (p) => ({
       h: SEAM.height + p * SEAM.grow,
@@ -118,7 +115,7 @@ export function createEdgeMenu({ router }) {
       op: SEAM.opacity + p * (1 - SEAM.opacity),
     });
     drawSeam(seams.left, at(near(x)));
-    drawSeam(seams.right, seamOverride ?? at(near(W - x)));
+    drawSeam(seams.right, at(near(W - x)));
   }
 
   // ---- open / close by hovering the edge -------------------------------------------------------------------------
@@ -226,7 +223,7 @@ export function createEdgeMenu({ router }) {
     const link = event.target.closest('.edge-menu__link');
     if (!link) return;
     event.preventDefault();
-    if (locked || pulling) return;
+    if (locked) return;
     const id = link.dataset.page || null;
     hide();
     if (id !== router.currentId) router.go(id);
@@ -249,56 +246,16 @@ export function createEdgeMenu({ router }) {
   });
   drawSeams();
 
-  // ---- for the scroll pull -----------------------------------------------------------------------------------------
-  /** Hand the menu over to the pull: right-hand side, centred, nothing animating but what the pull draws. */
-  function beginPull() {
-    pulling = true;
-    hide();
-    side = 'right';
-    root.dataset.side = 'right';
-    root.classList.add('is-pulling');
-    markCurrent();
-    for (const { li } of items) li.getAnimations().forEach((a) => a.cancel());
-    list.style.top = `${Math.round((window.innerHeight - list.offsetHeight) / 2)}px`;
-    // where each label rests (its centre, from the top of the screen), before anything moves
-    return items.map(({ li }) => {
-      const r = li.getBoundingClientRect();
-      return r.top + r.height / 2;
-    });
-  }
-
-  /** Give the menu back: every style the pull set is cleared, so it rests closed exactly as it would have. */
-  function endPull() {
-    pulling = false;
-    seamOverride = null;
-    root.classList.remove('is-pulling');
-    breathe.classList.remove('is-still');
-    shade.style.opacity = '';
-    for (const { li, link } of items) {
-      li.style.opacity = '';
-      li.style.transform = '';
-      link.style.color = '';
-      link.style.transform = '';
-    }
-    drawSeams();
-  }
-
   return {
     show,
     hide,
     markCurrent,
-    beginPull,
-    endPull,
-    items,
-    shade,
     get isOpen() {
       return open;
     },
-    /** The right-hand seam, drawn by the pull (null hands it back to the cursor); `still` stops its breathing. */
-    setSeam(seam, still) {
-      seamOverride = seam;
-      breathe.classList.toggle('is-still', !!still);
-      drawSeams();
+    /** Fade the seams by `k` (0..1: the scroll pull's overlay covers the page, and the seams go with it). */
+    dimSeams(k) {
+      indicator.style.opacity = k > 0 ? String(1 - k) : '';
     },
     set locked(value) {
       locked = value;

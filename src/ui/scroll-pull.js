@@ -1,90 +1,104 @@
 /**
- * Scroll between pages, "roll from the seam" (the scroll-transition handoff, board 11a).
+ * Scroll between pages, the "drop" row (the scroll-row-transition handoff, board 16a; it replaced 11a).
  *
  * Keep scrolling past the end of a page and the next one builds up as a pull:
- *   1. the right-hand seam stretches,
- *   2. the edge menu opens out of it, outward from the current page's label,
- *   3. the list rolls one slot, so the next page's label moves into the current one's place and turns blue,
- *   4. at a full pull the page swaps behind the menu and the menu tucks away. Let go early and it springs back.
- * Scrolling up past the top goes to the previous page the same way, rolling the other way. Order:
+ *   1. the page fades to black and a full-screen row of all five page names drops in, one at a time, left to right,
+ *      the current page's name blue;
+ *   2. at a full pull the blue hands over: the next page's name hops up, the current one dips;
+ *   3. the names fall away in the same order, the black lifts, and the next page is there.
+ * Let go early and it springs back. Scrolling up past the top goes to the previous page the same way. Order:
  * homepage -> about me -> photos -> my things -> say hi; nothing happens before the first or after the last.
  *
- * Wheel / trackpad, and ↑ ↓ PgUp PgDn Space at a page's edge. Mouse devices only, since it draws the edge menu
- * (src/ui/edge-menu.js); touch screens swipe between pages instead (router.js).
+ * Keep scrolling through a change and the blue hands over again to the page after, for as far as you scroll (the row
+ * stays up until you stop). With the edge menu open by hand, scrolling walks the menu instead.
  *
+ * Wheel / trackpad, and ↑ ↓ PgUp PgDn Space at a page's edge. Touch screens swipe between pages instead (router.js).
  * Every visual is drawn from a handful of numbers (pull, pullDir, going, t) on each frame: no CSS transitions.
  */
 
-/** Izzy's settled values (the handoff README's table). Tune here. */
+/** The handoff's values. Tune here. */
 export const PULL = {
   distance: 600, // px of wheel past the edge for a full pull
-  springBack: 0.8, // let go early: the pull is multiplied by this every frame until it's gone
+  springBack: 0.82, // let go early: the pull is multiplied by this every frame until it's gone
   releaseDelay: 200, // ms after the last wheel event before it springs back
+  duration: 1600, // ms of the page change once the pull is complete
   cooldown: 150, // ms after a page change when scrolling is ignored (a brief breath before the next pull can start)
-  chainAt: 0.5, // keep scrolling through a page change and it carries on: this much of a full pull, scrolled meanwhile,
-  //              goes straight on to the page after (and so on, for as far as you scroll)
-  chainDuration: 650, // ms: a page change that carries straight on is quicker
+  dropDist: 70, // px each name falls in and falls away
+  stagger: 0.2, // per name
+  hopUp: 22, // px the incoming page's name jumps
+  dipDown: 8, // px the outgoing one dips
+  chainAt: 0.5, // keep scrolling through a change and it carries on: this much of a full pull, scrolled meanwhile,
+  //              hands the blue on to the page after (and so on, for as far as you scroll)
   menuStep: 90, // px of scroll per page while the edge menu is open by hand (scrolling then just walks the list)
-  seamStart: 0.35, // the first part of the pull only stretches the seam
-  menuOpen: 0.5, // ...then the menu opens over this much of the rest
-  rollLag: 0.3, // ...and the roll waits this much of the rest before starting
-  seamGrow: 440, // px the seam gains (it rests at 200)
-  seamWidth: 4, // px wide at full stretch (it rests at 2)
-  stagger: 0.22, // per label, as the menu opens outward from the current one
-  slide: 40, // px each label slides in from the right
-  shade: 1, // the shade's opacity, fully open
-  activeScale: 0.12, // the label in the current slot grows by this
-  rows: 2.6, // labels further than this many slots from the current one fade out
-  duration: 1000, // ms of the page change once the pull is complete
-  hold: 0.55, // part of that the menu stays fully open (the pages swap within it)
-  pageShift: 115, // px the outgoing and incoming pages travel
-  nudge: 20, // px the page gives while you pull, like a rubber band
   keyStep: { ArrowDown: 80, ArrowUp: -80, PageDown: 300, PageUp: -300, ' ': 300 },
 };
 
 const ORDER = [null, 'about', 'photos', 'my-things', 'say-hi']; // null: the home screen
-const SEAM_REST = { height: 200, width: 2, opacity: 0.28 };
-const WHITE = [255, 255, 255];
-const BLUE = [111, 179, 224]; // #6fb3e0, the current page
+// The row: each name's text, and its hand-set resting tilt (deg) and offset (px)
+const NAMES = [
+  { html: 'homepage', rot: -2.4, y: 2 },
+  { html: 'about me', rot: 0, y: 0 },
+  { html: 'photos', rot: -1.2, y: 1 },
+  { html: 'my things', rot: 0.4, y: 0 },
+  { html: 'say <em>hi</em>', rot: -1.6, y: -1 },
+];
+// Where the commit's phases fall (fractions of `duration`)
+const HAND = { from: 0.08, span: 0.3 }; // the blue handing over
+const EXIT = { from: 0.58, span: 0.42 }; // the names falling away and the black lifting
 
 const clamp01 = (x) => Math.max(0, Math.min(1, x));
 const sm = (x) => {
   x = clamp01(x);
   return x * x * (3 - 2 * x);
 };
-const mix = (a, b, k) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * k)).join(', ')})`;
+const mixBlue = (k) => `rgb(${Math.round(255 - 144 * k)}, ${Math.round(255 - 76 * k)}, ${Math.round(255 - 31 * k)})`; // #fff → #6fb3e0
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function createScrollPull({ router, menu, hero }) {
   if (!menu) return null;
 
+  // ---- the overlay and the row ---------------------------------------------------------------------------------------
+  const overlay = document.createElement('div');
+  overlay.className = 'page-row';
+  overlay.setAttribute('aria-hidden', 'true');
+  const row = document.createElement('div');
+  row.className = 'page-row__names';
+  const names = NAMES.map(({ html }) => {
+    const el = document.createElement('span');
+    el.className = 'page-row__name';
+    el.innerHTML = html;
+    row.append(el);
+    return el;
+  });
+  overlay.append(row);
+  document.body.append(overlay);
+
   let pull = 0;
   let pullDir = 1;
   let going = false;
-  let t = 0;
   let cooldownUntil = 0;
   let releaseTimer = 0;
   let raf = 0;
-  let rests = null; // each label's resting centre while the pull has the menu (null: it doesn't)
-  let carry = 0; // px scrolled on (in pullDir) while a page change was playing, to carry on with once it lands
+  let carry = 0; // px scrolled on (in pullDir) while a page change was playing, to carry on with
 
   // ---- where we are ------------------------------------------------------------------------------------------------
   const here = () => ORDER.indexOf(router.currentId);
-  /** The page `dir` steps away (null is home), or undefined if there's none that way. */
-  function neighbour(dir) {
-    const i = here() + dir;
+  /** The page `dir` steps away from index `from` (null is home), or undefined if there's none that way. */
+  function neighbour(dir, from = here()) {
+    const i = from + dir;
     return i >= 0 && i < ORDER.length ? ORDER[i] : undefined;
   }
 
-  const scrolls = (el) => el.matches('.page__col, .page__scroll, .trips__chapters') && getComputedStyle(el).overflowY === 'auto' && el.scrollHeight - el.clientHeight > 1;
+  const SCROLLERS = '.page__col, .page__scroll, .trips__chapters';
+  const scrolls = (el) => el.matches(SCROLLERS) && getComputedStyle(el).overflowY === 'auto' && el.scrollHeight - el.clientHeight > 1;
 
   /** The page's own scroller that `el` sits in, or, with no `el` (keyboard), the open page's main one. */
   function scrollerFor(el) {
     for (let n = el; n && n !== hero && n instanceof Element; n = n.parentElement) if (scrolls(n)) return n;
     if (el && el !== document.body && el !== document.documentElement && hero.contains(el) && !el.closest('.page')) return null; // (anywhere on a page counts as over its scroller)
     const page = hero.querySelector('.page:not([hidden])');
-    return page ? [...page.querySelectorAll('.page__col, .page__scroll, .trips__chapters')].find(scrolls) ?? null : null;
+    return page ? [...page.querySelectorAll(SCROLLERS)].find(scrolls) ?? null : null;
   }
 
   function edges(scroller) {
@@ -114,7 +128,6 @@ export function createScrollPull({ router, menu, hero }) {
     const atEdge = dir > 0 ? edges(scroller).bottom : edges(scroller).top;
     const toward = neighbour(dir) !== undefined;
     if (toward && atEdge && (pull === 0 || dir === pullDir)) {
-      if (!rests) rests = menu.beginPull();
       const reach = pull + Math.abs(dy) / PULL.distance;
       carry = Math.max(0, reach - 1) * PULL.distance; // a big flick that overshoots a full pull keeps the rest
       pull = Math.min(1, reach);
@@ -131,7 +144,7 @@ export function createScrollPull({ router, menu, hero }) {
     }
     if (pull === 0) reset();
     else {
-      draw();
+      drawPull();
       releaseTimer = setTimeout(release, PULL.releaseDelay);
     }
     return true;
@@ -160,7 +173,7 @@ export function createScrollPull({ router, menu, hero }) {
     const dy = PULL.keyStep[event.key];
     if (!dy || event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
     const target = event.target instanceof Element ? event.target : null;
-    // keys that belong to something else: typing, a focused button / link (Space presses it), the page menu, the viewer
+    // keys that belong to something else: typing, a focused button / link (Space presses it), the viewer
     if (target?.closest('input, textarea, select, [contenteditable], button, a, .carousel:not([hidden])')) return;
     const scroller = scrollerFor(null);
     if (feed(dy, scroller)) {
@@ -232,139 +245,132 @@ export function createScrollPull({ router, menu, hero }) {
     const step = () => {
       pull *= PULL.springBack;
       if (pull < 0.005) return reset();
-      draw();
+      drawPull();
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
   }
 
-  /** Back to rest: the menu handed back, the page where it was. */
+  /** Back to rest: the overlay gone, the page as it was. */
   function reset() {
     menuTarget = -1;
     menuAcc = 0;
     pull = 0;
-    t = 0;
     going = false;
     menu.locked = false;
-    if (rests) menu.endPull();
-    rests = null;
+    menu.dimSeams(0);
+    overlay.classList.remove('is-up');
+    overlay.style.opacity = '';
     hero.style.transform = '';
-    hero.style.opacity = '';
   }
 
   // ---- drawing -----------------------------------------------------------------------------------------------------
-  /** `sw`: how far the page swap has got (commit only), `incoming`: whether the new page is the one showing. */
-  function draw({ sw = 0, incoming = false, ready = true } = {}) {
-    const S = PULL.seamStart;
-    const ph = 1 - S;
-    const m = going ? (t < PULL.hold ? 1 : 1 - sm((t - PULL.hold) / (1 - PULL.hold))) : sm((pull - S) / (ph * PULL.menuOpen));
-    const c = going ? 1 : sm((pull - S - ph * PULL.rollLag) / (ph * (1 - PULL.rollLag)));
-    const k = going ? 1 : Math.min(1, pull / S);
+  function drawOverlay(k) {
+    overlay.classList.toggle('is-up', k > 0);
+    overlay.style.opacity = String(k);
+    menu.dimSeams(k);
+  }
 
-    // the seam stretches, then fades as the menu takes over
-    const h = Math.min(SEAM_REST.height + k * PULL.seamGrow, window.innerHeight * 0.94);
-    menu.setSeam(
-      {
-        h,
-        center: window.innerHeight / 2,
-        w: SEAM_REST.width + k * (PULL.seamWidth - SEAM_REST.width),
-        op: (SEAM_REST.opacity + k * (1 - SEAM_REST.opacity)) * (1 - m),
-      },
-      pull > 0 || going,
-    );
-    menu.shade.style.opacity = String(m * PULL.shade);
+  function drawName(i, y, opacity, color) {
+    const el = names[i];
+    el.style.transform = `translateY(${y.toFixed(2)}px) rotate(${NAMES[i].rot}deg)`;
+    el.style.opacity = String(opacity);
+    el.style.color = color;
+  }
 
-    // the labels roll through a fixed slot: the current page's label's resting place. The page it's rolling toward
-    // ends up exactly there, so (here, in the old layout) nothing jumps when the menu re-rests on the new page.
+  /** While pulling: the page fades to black and steps back, and the names drop in, left to right. */
+  function drawPull() {
+    const ov = sm(pull / 0.5);
+    drawOverlay(ov);
+    hero.style.transform = reducedMotion || !ov ? '' : `scale(${(1 - 0.04 * ov).toFixed(4)})`;
+    const rIn = clamp01((pull - 0.15) / 0.45);
     const cur = here();
-    const gap = rests.length > 1 ? (rests[rests.length - 1] - rests[0]) / (rests.length - 1) : 1;
-    const slot = rests[cur];
-    const roll = -pullDir * c * gap;
-    menu.items.forEach(({ li, link }, i) => {
-      const y = rests[i] + roll;
-      const d = Math.abs(y - slot) / gap;
-      const mk = sm(m * (1 + 2 * PULL.stagger) - Math.abs(i - cur) * PULL.stagger);
-      const near = sm(1 - d);
-      li.style.opacity = String(mk * sm(1 - d / PULL.rows));
-      li.style.transform = reducedMotion ? 'none' : `translate(${((1 - mk) * PULL.slide).toFixed(2)}px, ${roll.toFixed(2)}px)`;
-      link.style.color = mix(WHITE, BLUE, near);
-      link.style.transform = `scale(${(1 + PULL.activeScale * near).toFixed(4)})`;
+    names.forEach((_, i) => {
+      const a = reducedMotion ? sm(rIn) : sm(rIn * 1.8 - i * PULL.stagger);
+      const drop = reducedMotion ? 0 : (1 - a) * PULL.dropDist;
+      drawName(i, NAMES[i].y - drop, a, mixBlue(i === cur ? 1 : 0));
     });
-
-    // the page: a small rubber-band give while pulling; during the change, the old page rises out and the new one
-    // rises in from below (the hero is one layer, so the two go one after the other, both behind the menu)
-    if (!going) {
-      hero.style.transform = pull > 0 && !reducedMotion ? `translateY(${(-pullDir * pull * PULL.nudge).toFixed(2)}px)` : '';
-      hero.style.opacity = '';
-      return;
-    }
-    const shift = reducedMotion ? 0 : PULL.pageShift;
-    if (!incoming) {
-      hero.style.opacity = String(1 - sm(sw / 0.5));
-      hero.style.transform = shift ? `translateY(${(-pullDir * (PULL.nudge + sw * shift)).toFixed(2)}px)` : '';
-    } else {
-      hero.style.opacity = ready ? String(sm((sw - 0.5) / 0.5)) : '0';
-      hero.style.transform = shift ? `translateY(${(pullDir * shift * (1 - sw)).toFixed(2)}px)` : '';
-    }
   }
 
   // ---- the page change ---------------------------------------------------------------------------------------------
-  function commit({ quick = false } = {}) {
-    const to = neighbour(pullDir);
-    if (to === undefined) {
+  function commit() {
+    if (neighbour(pullDir) === undefined) {
       carry = 0;
       return reset();
     }
     const dir = pullDir;
-    if (!rests) rests = menu.beginPull();
     going = true;
     pull = 1;
-    t = 0;
     menu.locked = true;
-    const duration = reducedMotion ? 200 : quick ? PULL.chainDuration : PULL.duration;
-    const hold = reducedMotion ? 1 : PULL.hold;
-    const start = performance.now();
-    let swapped = false;
+    menu.hide();
+    let from = here();
+    let to = from + dir;
+    const duration = reducedMotion ? 400 : PULL.duration;
+    let start = performance.now();
     let ready = false;
 
+    // behind the full black, the page changes straight away; the next one shows as the black lifts
+    const goTo = (i) => {
+      ready = false;
+      Promise.resolve(router.go(ORDER[i], { instant: true })).then(() => {
+        // moving on lands at the top of the new page; moving back lands at its bottom
+        const scroller = scrollerFor(null);
+        if (scroller) scroller.scrollTop = dir > 0 ? 0 : scroller.scrollHeight;
+        ready = true;
+      });
+    };
+    goTo(to);
+
     const step = (now) => {
-      t = Math.min(1, (now - start) / duration);
-      const sw = sm(t / hold);
-      if (!swapped && sw >= 0.5) {
-        swapped = true;
-        // swap while the hero is fully faded out; the router's own transitions are skipped behind it
-        Promise.resolve(router.go(to, { instant: true })).then(() => {
-          // moving on lands at the top of the new page; moving back lands at its bottom
-          const scroller = scrollerFor(null);
-          if (scroller) scroller.scrollTop = dir > 0 ? 0 : scroller.scrollHeight;
-          ready = true;
-        });
+      let t = Math.min(1, (now - start) / duration);
+      // still scrolling on, with somewhere to go? Before the names fall away, hand the blue on again
+      if (!reducedMotion && t >= EXIT.from && ready && carry >= PULL.chainAt * PULL.distance && neighbour(dir, to) !== undefined) {
+        carry = Math.max(0, carry - PULL.distance);
+        from = to;
+        to += dir;
+        goTo(to);
+        start = now - HAND.from * duration;
+        t = HAND.from;
       }
-      draw({ sw, incoming: swapped, ready });
-      if (t < 1 || !ready) {
+      // the black only lifts once the new page is ready behind it
+      if (!ready && t > EXIT.from) {
+        start += now - (start + EXIT.from * duration);
+        t = EXIT.from;
+      }
+
+      const sw = reducedMotion ? (t > 0 ? 1 : 0) : sm((t - HAND.from) / HAND.span);
+      const eRaw = clamp01((t - EXIT.from) / EXIT.span);
+      drawOverlay(1 - sm((eRaw - 0.3) / 0.7));
+      const e = sm((t - EXIT.from) / EXIT.span);
+      hero.style.transform = reducedMotion ? '' : `scale(${(0.96 + 0.04 * e).toFixed(4)})`;
+      const hop = Math.sin(Math.PI * sw);
+      names.forEach((_, i) => {
+        const b = reducedMotion ? sm(eRaw) : sm(eRaw * 1.8 - i * PULL.stagger);
+        let y = NAMES[i].y + (reducedMotion ? 0 : b * PULL.dropDist);
+        let color = mixBlue(0);
+        if (i === to) {
+          if (!reducedMotion) y -= PULL.hopUp * hop;
+          color = mixBlue(sw);
+        } else if (i === from) {
+          if (!reducedMotion) y += PULL.dipDown * hop;
+          color = mixBlue(1 - sw);
+        }
+        drawName(i, y, 1 - b, color);
+      });
+
+      if (t < 1) {
         raf = requestAnimationFrame(step);
         return;
       }
       const extra = carry;
       carry = 0;
       reset();
-      carryOn(dir, extra);
+      cooldownUntil = performance.now() + PULL.cooldown;
+      // a little scrolling left over: carry it into the page you've landed on
+      const scroller = scrollerFor(null);
+      if (extra > 0 && scroller) scroller.scrollTop += dir * extra;
     };
     raf = requestAnimationFrame(step);
-  }
-
-  /** The page has landed with `amount` px of scrolling still to come: go straight on, or scroll into the page. */
-  function carryOn(dir, amount) {
-    if (amount >= PULL.chainAt * PULL.distance && neighbour(dir) !== undefined) {
-      pullDir = dir;
-      carry = amount - PULL.distance; // (what's left after this one goes on to the next)
-      if (carry < 0) carry = 0;
-      commit({ quick: true });
-      return;
-    }
-    cooldownUntil = performance.now() + PULL.cooldown;
-    const scroller = scrollerFor(null);
-    if (amount > 0 && scroller) scroller.scrollTop += dir * amount;
   }
 
   return {

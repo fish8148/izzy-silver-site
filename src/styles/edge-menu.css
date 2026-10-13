@@ -11,7 +11,7 @@
 }
 
 /* the seams: a thin glowing line resting on each edge, so you know the menu is there. edge-menu.js sizes and places
-   them (they reach toward the cursor as it nears an edge, and the scroll pull stretches the right one). */
+   them (they reach toward the cursor as it nears an edge). */
 .edge-menu__indicator {
   position: absolute;
   inset: 0;
@@ -26,10 +26,6 @@
   position: absolute;
   inset: 0;
   animation: edge-breathe 4.5s ease-in-out infinite;
-}
-
-.edge-menu__breathe.is-still {
-  animation: none;
 }
 
 @keyframes edge-breathe {
@@ -201,16 +197,6 @@
   }
 }
 
-/* the scroll pull (src/ui/scroll-pull.js) draws every frame itself: no transitions, and no catching the pointer */
-.edge-menu.is-pulling .edge-menu__shade,
-.edge-menu.is-pulling .edge-menu__link {
-  transition: none;
-}
-
-.edge-menu.is-pulling .edge-menu__link {
-  pointer-events: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .edge-menu__breathe {
     animation: none;
@@ -222,4 +208,43 @@
   .edge-menu__shade {
     width: 100%;
   }
+}
+
+/* ---------- the scroll pull's row (src/ui/scroll-pull.js) ---------- */
+/* Black over the page (under the edge menu), with every page's name in one row; the pull draws it frame by frame. */
+.page-row {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  pointer-events: none;
+}
+
+.page-row.is-up {
+  display: flex;
+}
+
+.page-row__names {
+  display: flex;
+  align-items: center;
+  gap: 3.4vw;
+}
+
+.page-row__name {
+  display: inline-block;
+  font-family: var(--font);
+  font-size: clamp(28px, 3.1vw, 56px);
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: #fff;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.page-row__name em {
+  font-style: italic;
 }
