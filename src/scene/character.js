@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
 
 /**
  * Loads character.glb and returns everything the rest of the app needs:
@@ -19,6 +20,19 @@ export async function loadCharacter(url, onProgress) {
     if (object.material.map) object.material.map.anisotropy = 8;
   });
 
+  return rig(root, gltf.animations);
+}
+
+/**
+ * Another, independent copy of a loaded character (its own skeleton and mixer; the mesh and textures are shared), for
+ * when two places show him at once, or one after the other with their own animations (about me and say hi).
+ */
+export function cloneCharacter(character) {
+  return rig(cloneSkinned(character.root), character.clips);
+}
+
+/** Bones, height, a mixer and actions for a character's scene graph. */
+function rig(root, clips) {
   // Bones by short name ("Head", "LeftHand", …). GLTFLoader sanitises "mixamorig:Head" to "mixamorig_Head".
   const bones = {};
   root.traverse((object) => {
@@ -26,6 +40,7 @@ export async function loadCharacter(url, onProgress) {
   });
 
   // Standing height, measured in the bind pose.
+  root.position.set(0, 0, 0);
   root.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(root);
   const height = box.max.y - box.min.y;
@@ -33,9 +48,9 @@ export async function loadCharacter(url, onProgress) {
   // name -> clipAction lookup
   const mixer = new THREE.AnimationMixer(root);
   const actions = {};
-  for (const clip of gltf.animations) actions[clip.name] = mixer.clipAction(clip);
+  for (const clip of clips) actions[clip.name] = mixer.clipAction(clip);
 
-  return { root, mixer, actions, clips: gltf.animations, bones, height, floorOffset: -box.min.y };
+  return { root, mixer, actions, clips, bones, height, floorOffset: -box.min.y };
 }
 
 /**

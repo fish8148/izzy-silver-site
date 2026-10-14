@@ -38,8 +38,8 @@ export function createStage(canvas, { framing } = {}) {
   const hemi = new THREE.HemisphereLight(0xe4eaf2, 0x2b2724, 1.55);
   const key = new THREE.DirectionalLight(0xfff0de, 1.7);
   key.position.set(-2.2, 3.4, 3.4);
-  // faint accent-colored rim from behind: separates the silhouette from the dark backdrop
-  const rim = new THREE.DirectionalLight(0x3fe0c5, 0.75);
+  // faint accent-colored rim from behind (the site's light blue): separates the silhouette from the dark backdrop
+  const rim = new THREE.DirectionalLight(0x6fb3e0, 0.75);
   rim.position.set(2.6, 2.4, -3.2);
   scene.add(hemi, key, rim);
 

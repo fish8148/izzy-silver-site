@@ -1,7 +1,7 @@
 /**
- * The pages, in order, as the edge menu lists them and as scrolling (or swiping) steps through them, after the homepage.
- * The one place to add, remove or reorder a page (it also needs its floating label in index.html and its entry in
- * pages/index.js). `html` is how the scroll pull's row writes the name, when that differs from `name`.
+ * The pages, in order, as scrolling (or swiping) steps through them. The first one is where the site opens.
+ * The one place to add, remove or reorder a page (it also needs its section in index.html and its entry in
+ * pages/index.js). `html` is how the scroll pull's bar writes the name, when that differs from `name`.
  */
 export const PAGE_ORDER = [
   { id: 'about', name: 'about me' },

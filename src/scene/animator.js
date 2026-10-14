@@ -1,14 +1,15 @@
 import * as THREE from 'three';
-import { CLIPS, CROSSFADE, ENTRANCES, ENTRANCE_SETTLE, IDLE_ACTIONS, IDLE_AFTER, IDLE_FADE, REST_CYCLE, SPEED } from '../config.js';
+import { CLIPS, CROSSFADE, ENTRANCES, ENTRANCE_SETTLE, IDLE_ACTIONS, IDLE_AFTER, IDLE_FADE, ONCE, SPEED } from '../config.js';
 
 /**
  * Animation state machine.
  *
- *   rest states   idle → wave → spin → idle …   (loop forever; a click on the character advances). Treading water is a
- *                 rest state too, but only the swim entrance ends in it, and a click ends it.
+ *   rest states   idle, wave, spin, warrior… (loop until something else is asked for; the owner walks CLICK_CYCLE on each
+ *                 click). Those in ONCE play once and hold their last frame. Treading water is a rest state
+ *                 too, but only the swim entrance ends in it.
  *   entrance      one clip that brings the character in (a wave, a swing, a moonwalk…), then idle
  *   idle action   after IDLE_AFTER seconds standing in idle he does one of IDLE_ACTIONS once, then idle again
- *   sequence      one-shot clips played back to back (Dance Party). Each is LoopOnce +
+ *   sequence      one-shot clips played back to back (the dance party, the arrow). Each is LoopOnce +
  *                 clampWhenFinished, and the next step / return to rest is triggered by the
  *                 mixer's `finished` event — never a timer.
  *
@@ -81,7 +82,8 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
   function playRest(state, options) {
     restState = state;
     idleTime = 0;
-    crossTo(need(CLIPS[state]), { timeScale: SPEED[state] ?? 1, ...options });
+    const once = ONCE.has(state) ? { loop: THREE.LoopOnce, repetitions: 1 } : {};
+    crossTo(need(CLIPS[state]), { timeScale: SPEED[state] ?? 1, ...once, ...options });
     emit();
   }
 
@@ -93,12 +95,10 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
     done?.(false);
   }
 
-  /** Advance idle → wave → spin → idle. Ignored while a sequence owns the character. From anywhere else (treading water) it goes to idle. */
-  function cycle() {
+  /** A click takes over: drop a running entrance / idle action. False while a sequence owns the character. */
+  function interrupt() {
     if (sequence) return false;
-    dropTransients(); // a click during an entrance or an idle action takes over from it
-    const next = REST_CYCLE[(REST_CYCLE.indexOf(restState) + 1) % REST_CYCLE.length];
-    playRest(next);
+    dropTransients();
     return true;
   }
 
@@ -203,10 +203,11 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
     sequence.onStep?.(name, sequence.index);
   }
 
-  /** Play clips back to back, then crossfade to whichever rest state was active before. */
-  function playSequence(names, { onStep, onDone } = {}) {
+  /** Play clips back to back, then crossfade to rest state `then` (default: whichever was active before). */
+  function playSequence(names, { onStep, onDone, then } = {}) {
     if (sequence) return false;
     dropTransients();
+    if (then) restState = then;
     sequence = { names, index: 0, action: null, onStep, onDone };
     startStep();
     emit();
@@ -317,7 +318,7 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
   return {
     update,
     playEntrance,
-    cycle,
+    interrupt,
     playRest,
     playSequence,
     abortSequence,

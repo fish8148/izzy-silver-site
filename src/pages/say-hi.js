@@ -1,12 +1,12 @@
 import { contact } from '../data/contact.js';
+import { resumeLink } from '../ui/resume.js';
+import { pageCharacter, preloadPageCharacter } from './page-character.js';
 
-// The 3D part (and three.js) is only fetched when it's wanted: `preload` runs while the browser is idle after the hero is
-// up, and the page's first open waits for whatever is left.
-const loadCharacter = () => import('../features/panel-character.js');
-
+// he stands as on about me, so he's the same size on both pages
+const CHARACTER_FRAMING = { feet: 0.97, span: 0.9 };
 const COPIED_MS = 1600; // how long "copied" shows after the address is clicked
 
-const views = new WeakMap(); // page element -> { canvas, note, model, wanted }
+const views = new WeakMap(); // page element -> its character (page-character.js)
 
 function make(tag, className, text) {
   const el = document.createElement(tag);
@@ -32,22 +32,16 @@ async function deliver({ name, email, message }) {
 }
 
 /**
- * Say hi (the "Note" layout, 20b). On the left, a contact form written as a sentence ("hi izzy, i'm ___ and you can
- * reach me at ___"), a message box and a send button, with the address to copy as a fallback; once sent, a thank-you
- * takes its place. On the right, the character from the home screen in a dark panel (features/panel-character.js),
- * with the links under it. (The stretchy head scan, features/face-lift.js, is set aside for now.)
+ * Say hi (25a "Intro form", set like about me's intro). On the left, a contact form written as a sentence ("hi izzy, i'm
+ * ___ and you can reach me at ___"), a message box, then one row of text links (send by email ↗, linkedin ↗, …, resume ↗)
+ * with the address to copy under it; once sent, a thank-you takes its place. On the right, the 3D character standing on
+ * the black page with no panel, as on about me (features/panel-character.js). (The stretchy head scan,
+ * features/face-lift.js, is set aside.)
  */
 export const sayHiPage = {
   stagger: 90,
 
-  preload() {
-    // (the model file itself is already cached from the home screen. A phone just fetches the code: reading a second
-    // copy of the model ahead of time would hold its memory for a page that may never be opened)
-    const phone = window.matchMedia('(pointer: coarse)').matches;
-    loadCharacter()
-      .then(({ preloadCharacter }) => phone || preloadCharacter())
-      .catch(() => {}); // (it is tried again, and reported, when the page is actually opened)
-  },
+  preload: preloadPageCharacter,
 
   render(page) {
     page.classList.add('page--hi');
@@ -71,18 +65,29 @@ export const sayHiPage = {
     Object.assign(message, { name: 'message', placeholder: 'what’s on your mind…' });
     message.setAttribute('aria-label', 'your message');
 
+    // one row of text links: send, then the links (contact.js) and the resume; the address to copy under it
     const actions = make('div', 'hi-actions');
+    const row = make('div', 'hi-links-row');
     const send = make('button', 'hi-send', contact.formEndpoint ? 'send ↗' : 'send by email ↗');
     send.type = 'submit';
     send.disabled = true;
+    row.append(send);
+    for (const { name, href } of contact.links) {
+      if (!href) continue;
+      const a = make('a', 'hi-link', `${name} ↗`);
+      Object.assign(a, { href, target: '_blank', rel: 'noopener noreferrer' });
+      a.setAttribute('aria-label', `${name} (opens in new tab)`);
+      row.append(a);
+    }
+    row.append(resumeLink('hi-link'));
     const alt = make('p', 'hi-alt');
     const copy = make('button', 'hi-copy', contact.email);
     copy.type = 'button';
     copy.setAttribute('aria-label', `${contact.email}, click to copy`);
     const copyLabel = make('span', 'hi-copy-label', 'click to copy');
     copyLabel.setAttribute('aria-live', 'polite');
-    alt.append('or email ', copy, ' ', copyLabel);
-    actions.append(send, alt);
+    alt.append('or copy ', copy, ' ', copyLabel);
+    actions.append(row, alt);
 
     const error = make('p', 'hi-error');
     error.setAttribute('role', 'status');
@@ -103,32 +108,23 @@ export const sayHiPage = {
     const main = make('div', 'hi-main');
     main.append(form, sent);
 
-    // ---- the head and the links ----------------------------------------------------------------------------------
+    // ---- the character ---------------------------------------------------------------------------------------------
     const side = make('div', 'hi-side');
-    const stage = make('div', 'hi-stage');
+    const floor = make('div', 'hi-floor');
     const canvas = make('canvas', 'hi-canvas');
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', "Izzy's 3D character. Click him to change what he's doing, or drag to look around.");
     const note = make('p', 'hi-note');
     note.hidden = true;
-    stage.append(canvas, note);
+    side.append(floor, canvas, note);
 
-    const links = make('div', 'hi-links');
-    for (const { name, href } of contact.links) {
-      if (!href) continue;
-      const a = make('a', 'hi-link', `${name} ↗`);
-      Object.assign(a, { href, target: '_blank', rel: 'noopener noreferrer' });
-      a.setAttribute('aria-label', `${name} (opens in new tab)`);
-      links.append(a);
-    }
-    side.append(stage, links);
-
-    root.append(main, side);
+    const inner = make('div', 'hi__inner');
+    inner.append(main, side);
+    root.append(inner);
     page.append(root);
 
     // ---- behaviour -----------------------------------------------------------------------------------------------
-    const view = { canvas, note, model: null, wanted: false };
-    views.set(page, view);
+    views.set(page, pageCharacter({ canvas, note, framing: CHARACTER_FRAMING, failText: "couldn't load the 3D character, but the links still work." }));
 
     let sending = false;
     const ready = () => message.value.trim().length > 0;
@@ -191,30 +187,13 @@ export const sayHiPage = {
     });
   },
 
-  blocks: (page) => [...page.querySelectorAll('.hi-sentence, .hi-message, .hi-actions, .hi-stage, .hi-links')],
+  blocks: (page) => [...page.querySelectorAll('.hi-sentence, .hi-message, .hi-actions, .hi-side')],
 
   onShow(page) {
-    const view = views.get(page);
-    view.wanted = true;
-    view.model ??= loadCharacter().then(({ createPanelCharacter }) => createPanelCharacter({ canvas: view.canvas }));
-    view.model
-      .then((model) => {
-        if (import.meta.env.DEV) window.__hi = model;
-        if (!view.wanted) return; // closed again before he had loaded
-        model.reset(); // standing in idle, from the front, every visit
-        model.start();
-      })
-      .catch((error) => {
-        console.error('Failed to start the character', error);
-        view.model = null; // try again next time
-        view.note.textContent = "couldn't load the 3D character, but the links below still work.";
-        view.note.hidden = false;
-      });
+    views.get(page).show();
   },
 
   onHide(page) {
-    const view = views.get(page);
-    view.wanted = false;
-    view.model?.then((model) => model.stop()).catch(() => {});
+    views.get(page).hide();
   },
 };

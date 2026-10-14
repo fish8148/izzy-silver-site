@@ -13,7 +13,6 @@
 .pages {
   position: absolute;
   inset: 0;
-  z-index: 3; /* above the canvas, below the floating labels (z 4) */
   pointer-events: none;
 }
 
@@ -27,12 +26,8 @@
   display: none;
 }
 
-.hero.is-page-open .hero__canvas {
-  pointer-events: none;
-}
-
 /* ---------- about me (the "Editorial" design, 14a) ---------- */
-/* One scrolling page (about.js): the intro beside a portrait, then the highlights, each with its name pinned on the left
+/* One scrolling page (about.js): the intro beside the 3D character, then the highlights, each with its name pinned on the left
    while its photos scroll past, then a large resume link. */
 .page--about {
   --about-meta: #5a5a5a;
@@ -86,19 +81,11 @@
 
 .about-intro {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 64px;
   align-items: center;
   min-height: 100%;
-  padding: 72px 0;
-}
-
-.about-intro.is-text-only {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.about-intro.is-text-only .about-intro__text {
-  max-width: 820px; /* (about as wide as the text was beside a portrait: lines that are easy to read) */
+  padding: 56px 0;
 }
 
 .about-intro__text {
@@ -116,7 +103,16 @@
   text-wrap: pretty;
 }
 
+.about-intro__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
+  margin-top: 8px;
+  font-size: 20px;
+}
+
 .about-intro__resume,
+.about-intro__hi,
 .about-closing__resume {
   display: inline-block;
   color: var(--about-link);
@@ -125,20 +121,61 @@
 }
 
 .about-intro__resume:hover,
+.about-intro__hi:hover,
 .about-closing__resume:hover {
   color: var(--about-link-hover);
 }
 
-.about-intro__resume {
-  margin-top: 8px;
-  font-size: 20px;
+/* the character, standing on the black page: no panel, the canvas is transparent */
+.about-intro__character {
+  position: relative;
+  height: 600px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.about-intro__portrait {
-  height: 440px;
-  overflow: hidden;
-  border-radius: 28px;
-  background: var(--bg-raised);
+.about-intro__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y; /* vertical drags scroll the page; only horizontal ones turn the camera */
+  opacity: 0; /* fades in once he has drawn his first frame (panel-character.js adds .is-ready) */
+  transition: opacity 0.4s ease;
+}
+
+.about-intro__canvas.is-ready {
+  opacity: 1;
+}
+
+.about-intro__canvas.is-hovering-character {
+  cursor: pointer;
+}
+
+.about-intro__canvas.is-dragging {
+  cursor: grabbing;
+}
+
+/* a faint pool of light under his feet */
+.about-intro__floor {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  width: 260px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
+.about-intro__note {
+  position: absolute;
+  inset: auto 0 24px;
+  text-align: center;
+  font-size: 15px;
+  color: var(--about-meta);
 }
 
 .about-highlight {
@@ -220,11 +257,9 @@
     padding: max(32px, env(safe-area-inset-top)) 0 56px;
   }
 
-  .about-intro__portrait {
+  .about-intro__character {
     order: -1; /* above the text */
-    height: auto;
-    aspect-ratio: 340 / 440;
-    max-height: 60vh;
+    height: min(60vh, 520px);
   }
 
   .about-intro__text p {
@@ -745,13 +780,19 @@
 .hi {
   position: absolute;
   inset: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 64px;
-  padding: 72px 56px 56px;
   overflow-y: auto;
   scrollbar-width: none;
   pointer-events: auto;
+}
+
+/* the same grid as about me's intro (24b): the form where the intro text is, the character where he stands there */
+.hi__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 64px;
+  align-items: center;
+  min-height: 100%;
+  padding: 56px;
 }
 
 .hi::-webkit-scrollbar {
@@ -786,7 +827,7 @@
   align-items: baseline;
   gap: 14px;
   font-size: var(--hi-sentence);
-  line-height: 1.5;
+  line-height: 1.3;
   color: #fff;
 }
 
@@ -844,36 +885,53 @@
   box-shadow: inset 0 0 0 1px var(--hi-line);
 }
 
+/* one row of text links (send is blue, the rest white), the address to copy under it */
 .hi-actions {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.hi-links-row {
+  display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 16px 28px;
+  align-items: baseline;
+  gap: 12px 32px;
+  font-size: 20px;
 }
 
 .hi-send {
-  padding: 14px 28px;
+  padding: 0;
   font: inherit;
   font-size: 20px;
-  line-height: 1.2;
-  color: #000;
-  background: var(--hi-blue);
+  color: var(--hi-blue);
+  background: none;
   border: none;
-  border-radius: 999px;
+  border-radius: 0;
   cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
-}
-
-.hi-send:disabled {
-  color: var(--hi-muted);
-  background: #1c1c1c;
-  cursor: default;
+  transition: color 0.2s ease;
 }
 
 .hi-send:not(:disabled):hover {
-  background: var(--hi-blue-hover);
+  color: var(--hi-blue-hover);
+}
+
+.hi-send:disabled {
+  color: var(--hi-muted); /* until a message is typed */
+  cursor: default;
+}
+
+.hi-link {
+  font-size: 20px;
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.hi-link:hover,
+.hi-link:focus-visible {
+  color: var(--hi-blue);
 }
 
 .hi-alt,
@@ -887,7 +945,7 @@
 .hi-copy {
   padding: 0;
   font: inherit;
-  color: var(--hi-blue);
+  color: var(--hi-secondary);
   background: none;
   border: none;
   cursor: pointer;
@@ -895,11 +953,11 @@
 }
 
 .hi-copy:hover {
-  color: var(--hi-blue-hover);
+  color: var(--hi-blue);
 }
 
 .hi-error {
-  margin-top: -12px; /* (sits just under the button: the form's 28px gap is too loose for it) */
+  margin-top: -14px; /* (sits just under the row: the form's 28px gap is too loose for it) */
 }
 
 .hi-error[hidden] {
@@ -944,33 +1002,37 @@
   color: var(--hi-secondary);
 }
 
-/* the character: a dark panel he stands in (drag to turn the camera, click him for the next move) */
+/* the character, standing on the black page with no panel, as on about me (drag to turn the camera, click him for the next move) */
 .hi-side {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-height: 0;
-}
-
-.hi-stage {
   position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 28px;
-  background: #0a0a0a;
-  box-shadow: inset 0 0 0 1px var(--hi-line);
+  height: 600px;
   user-select: none;
   -webkit-user-select: none;
 }
 
+/* a faint pool of light under his feet */
+.hi-floor {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  width: 260px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+
 .hi-canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   cursor: default;
+  touch-action: pan-y;
   opacity: 0; /* fades in once he has drawn his first frame (panel-character.js adds .is-ready) */
-  transition: opacity 0.7s ease;
+  transition: opacity 0.4s ease;
 }
 
 .hi-canvas.is-ready {
@@ -997,41 +1059,18 @@
   font-size: 13px;
 }
 
-.hi-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  font-size: 15px;
-}
-
-.hi-link {
-  color: var(--hi-secondary);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-.hi-link:hover,
-.hi-link:focus-visible {
-  color: var(--hi-blue);
-}
-
-/* narrower than a laptop: one column that scrolls, the form first and the head under it */
+/* narrower than a laptop: one column that scrolls, the character above the form (as on about me) */
 @media (max-width: 959px) {
-  .hi {
-    display: flex;
-    flex-direction: column;
-    gap: 40px;
-    padding: max(56px, env(safe-area-inset-top)) clamp(20px, 6vw, 56px) max(32px, env(safe-area-inset-bottom));
+  .hi__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 32px;
+    min-height: 0;
+    padding: max(32px, env(safe-area-inset-top)) clamp(16px, 5vw, 56px) max(32px, env(safe-area-inset-bottom));
   }
 
-  .hi-main {
-    flex: none;
-    justify-content: flex-start;
-  }
-
-  .hi-stage {
-    flex: none;
-    height: clamp(300px, 52vh, 460px);
+  .hi-side {
+    order: -1;
+    height: min(60vh, 520px);
   }
 }
 
@@ -1056,9 +1095,13 @@
     border-radius: 22px;
   }
 
-  .hi-send {
+  .hi-links-row {
+    gap: 10px 24px;
+  }
+
+  .hi-send,
+  .hi-link {
     font-size: 18px;
-    padding: 12px 24px;
   }
 }
 

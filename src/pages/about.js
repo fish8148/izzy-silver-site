@@ -1,30 +1,22 @@
 import { about } from '../data/about.js';
 import { photoElement } from '../ui/image.js';
+import { resumeLink } from '../ui/resume.js';
+import { pageCharacter, preloadPageCharacter } from './page-character.js';
 
 /**
- * About Me (the "Editorial" design, 14a): one scrolling page.
- *   1. the intro: three paragraphs set large, a resume link, and a portrait
+ * About Me (the "Editorial" design, 14a, with the character from 24b "Standing"): one scrolling page, and the first one
+ * the site opens on.
+ *   1. the intro: three paragraphs set large, the resume and say hi links, and the 3D character standing beside them
+ *      on the black page (features/panel-character.js), with a faint pool of light under his feet
  *   2. the highlights (src/data/about.js): each section's name stays pinned on the left while its photos scroll past
  *   3. a large resume link to close
  * Under 960px everything goes to one column (pages.css).
  */
 
 const WIDE_EVERY = [2, 1, 1, 2]; // the photo grid's columns per tile, repeating: wide, half, half, wide
-const base = import.meta.env.BASE_URL;
-const url = (path) => (/^(https?:)?\/\//.test(path) || path.startsWith('/') ? path : `${base}${path}`);
-
-function resumeLink(className) {
-  const link = document.createElement('a');
-  link.className = className;
-  // (the build's fingerprint of public/resume.pdf, so an updated resume is never served from an old cache: vite.config.js)
-  const version = /^resume\.pdf$/.test(about.resume) && __RESUME_VERSION__ ? `?v=${__RESUME_VERSION__}` : '';
-  link.href = url(about.resume) + version;
-  link.target = '_blank';
-  link.rel = 'noopener';
-  link.textContent = 'resume ↗';
-  link.setAttribute('aria-label', `resume (${/\.pdf$/i.test(about.resume) ? 'PDF, ' : ''}opens in new tab)`);
-  return link;
-}
+const views = new WeakMap(); // page element -> its character (page-character.js)
+// He's drawn larger here than on say hi: feet about 1% above the bottom of his column, the head about 3% below its top
+const FRAMING = { feet: 0.97, span: 0.9 };
 
 function lazy(el) {
   for (const img of el.tagName === 'IMG' ? [el] : el.querySelectorAll('img')) img.loading = 'lazy';
@@ -42,15 +34,29 @@ function intro() {
     p.textContent = paragraph;
     text.append(p);
   }
-  text.append(resumeLink('about-intro__resume'));
-  section.append(text);
-  if (about.portrait) {
-    const portrait = document.createElement('figure');
-    portrait.className = 'about-intro__portrait';
-    portrait.append(photoElement(about.portrait, { sizes: '(max-width: 959px) 92vw, 340px' }));
-    section.append(portrait);
-  } else section.classList.add('is-text-only');
-  return section;
+  const links = document.createElement('div');
+  links.className = 'about-intro__links';
+  const hi = document.createElement('a');
+  hi.className = 'about-intro__hi';
+  hi.href = '#say-hi'; // (the router switches to say hi in place: same tab, hence → rather than ↗)
+  hi.textContent = 'say hi →';
+  links.append(resumeLink('about-intro__resume'), hi);
+  text.append(links);
+
+  const character = document.createElement('div');
+  character.className = 'about-intro__character';
+  const floor = document.createElement('div');
+  floor.className = 'about-intro__floor';
+  const canvas = document.createElement('canvas');
+  canvas.className = 'about-intro__canvas';
+  canvas.setAttribute('role', 'img');
+  canvas.setAttribute('aria-label', "Izzy's 3D character. Click him to change what he's doing, or drag to look around.");
+  const note = document.createElement('p');
+  note.className = 'about-intro__note';
+  note.hidden = true;
+  character.append(floor, canvas, note);
+  section.append(text, character);
+  return { section, canvas, note };
 }
 
 function highlight(item, k) {
@@ -100,6 +106,8 @@ function highlight(item, k) {
 export const aboutPage = {
   stagger: 120,
 
+  preload: preloadPageCharacter,
+
   render(page) {
     page.classList.add('page--about');
     const scroller = document.createElement('div');
@@ -109,14 +117,21 @@ export const aboutPage = {
     closing.className = 'about-closing';
     closing.setAttribute('aria-label', 'Resume');
     closing.append(resumeLink('about-closing__resume'));
-    scroller.append(intro(), ...about.highlights.map(highlight), closing);
+    const top = intro();
+    scroller.append(top.section, ...about.highlights.map(highlight), closing);
     page.append(scroller);
+    views.set(page, pageCharacter({ canvas: top.canvas, note: top.note, framing: FRAMING, failText: "couldn't load the 3D character, but the links still work." }));
   },
 
   onShow(page) {
     page.querySelector('.about').scrollTop = 0;
+    views.get(page).show();
   },
 
-  // the intro comes in one piece at a time: each paragraph, the link, the portrait (the rest is below the fold)
-  blocks: (page) => [...page.querySelectorAll('.about-intro__text > *'), page.querySelector('.about-intro__portrait')].filter(Boolean),
+  onHide(page) {
+    views.get(page).hide();
+  },
+
+  // the intro comes in one piece at a time: each paragraph, the links, the character (the rest is below the fold)
+  blocks: (page) => [...page.querySelectorAll('.about-intro__text > *'), page.querySelector('.about-intro__character')],
 };

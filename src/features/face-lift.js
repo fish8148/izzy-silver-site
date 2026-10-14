@@ -119,7 +119,7 @@ export async function createFaceLift({ canvas }) {
   // light drifts slowly from side to side, which is what makes the stretched surface read as 3D.
   const hemi = new THREE.HemisphereLight(0xf1f4f8, 0x4a423c, 1.85);
   const key = new THREE.DirectionalLight(0xfff1e0, 1.15);
-  const rim = new THREE.DirectionalLight(0x3fe0c5, 0.55); // the same faint teal edge as the home screen
+  const rim = new THREE.DirectionalLight(0x6fb3e0, 0.55); // the same faint blue edge as the home screen
   rim.position.set(2.4, 1.4, -2.6);
   scene.add(hemi, key, rim);
   let clock = 0;

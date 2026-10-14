@@ -9,11 +9,29 @@ export const CLIPS = {
   wave: 'waving',
   spin: 'hurricane kick',
   tread: 'treading water',
+  warrior: 'warrior idle',
+  moonwalk: 'moonwalking', // (plays in place)
+  arrow: 'shooting arrow',
+  salute: 'saluting',
 };
 
-// Clicking the character walks through these "resting" states in order, then wraps. (Treading water isn't in it: he only
-// does that after swimming in, and a click ends it.)
-export const REST_CYCLE = ['idle', 'wave', 'spin'];
+// Clicking the character walks through these in order, then wraps. A string is a resting state: it keeps playing until
+// the next click. An object plays once and then rests: `clips` back to back, or the dance party (`dance: true`), then
+// `then` (default idle). (The breakdance freeze and dying were tried and left out: both travel too far for the
+// character's column on a page, and drift out of view.)
+// (Treading water isn't in it: he only does that after swimming in, and a click ends it.)
+export const CLICK_CYCLE = [
+  'idle',
+  'wave',
+  'spin',
+  { clips: ['shooting arrow'] },
+  'warrior',
+  'moonwalk',
+  { dance: true },
+  { clips: ['saluting'] },
+];
+// Resting states that play once and hold their last frame instead of looping (none at the moment)
+export const ONCE = new Set();
 
 // The launch wave repeats this many times. At the slower wave speed below one loop takes ~1.1 s, so 3 loops is about
 // 3.4 seconds of waving.
@@ -21,7 +39,7 @@ export const INTRO_WAVE_LOOPS = 3;
 
 // Playback speed of each resting state (1 = the clip's own speed, lower = slower). The wave clip is very quick
 // on its own, so it plays at half speed; the hurricane kick is a little under two-thirds.
-export const SPEED = { idle: 1, wave: 0.5, spin: 0.6, tread: 1 };
+export const SPEED = { idle: 1, wave: 0.5, spin: 0.6, tread: 1, moonwalk: 0.9 };
 
 // Entrances: how the character arrives. Each plays once and then settles into idle.
 //   clip     the GLB clip
@@ -46,11 +64,11 @@ export const ENTRANCES = {
   climb: { clip: 'freehang climb', anchor: 'xyz', settle: 0.5 },
 };
 
-// The first time the home screen appears he greets you with one of these, then settles into idle. It's picked at random but
-// never the same as last time (remembered across reloads), so reloading the page gives a different one. Each time you come
-// back from a page, one of the others.
-export const FIRST_ENTRANCES = ['wave', 'salute'];
-export const RETURN_ENTRANCES = ['swing', 'moonwalk', 'swim', 'climb'];
+// Each time about me or say hi is shown, he arrives with the next of these (then idles). The order is shuffled, played
+// through to the end, then shuffled again; it's shared by both pages and remembered across visits
+// (features/panel-character.js). 'dance' is the dance party. People who asked for less motion only get the wave and salute.
+export const OPENERS = ['wave', 'salute', 'swing', 'moonwalk', 'swim', 'climb', 'dance'];
+export const CALM_OPENERS = ['wave', 'salute'];
 
 // Idle actions: after this many seconds standing in idle he does one of these, then goes back to idle (and the wait starts
 // again). Never the same one twice in a row. An action can have a `cooldown`: after he does it, it's off the list for that
@@ -69,13 +87,11 @@ export const ENTRANCE_SETTLE = 0.5;
 // Seconds for every other crossfade between clips.
 export const CROSSFADE = 0.3;
 
-// Dance Party: clips play back-to-back, each once, chained on the mixer's `finished` event.
+// Dance Party: clips play back-to-back, each once, chained on the mixer's `finished` event, with the lights changing colour.
 export const DANCE = {
   clips: ['hip hop dancing', 'dancing', 'samba dancing'],
-  audio: 'audio/dance.mp3', // served from /public — add your own file (see README)
-  audioVolume: 0.85,
   bpm: 121, // drives the light pulse
-  fadeOut: 1.4, // seconds of lights/music fade before the routine ends
+  fade: 0.9, // seconds for the party lights to come up, and to go down again at the end
 };
 
 // Say hi: the head you can stretch (src/features/face-lift.js). Lengths are in "head heights": the scan is scaled to be 1 tall.
@@ -108,25 +124,14 @@ export const THINGS = {
   close: 0.65, // ...and to float back
 };
 
-// Phone tilt (src/ui/tilt.js), used by the home screen's swaying labels and by my things.
+// Phone tilt (src/ui/tilt.js), used by my things.
 export const TILT = {
   settle: 2.2, // seconds for a tilt that is simply held to fade into "normal": only *moving* the phone counts
   limit: 0.6, // the most one reading can lean either way (0.5 is about 30 degrees), so a jerk can't fling things
 };
 
-// The home screen's floating labels sway with the phone (src/ui/sway.js).
-export const SWAY = {
-  px: 44, // how far a label leans at a full unit of tilt (each label leans by its own share of this: --depth in index.html)
-  limit: 26, // never further than this, px
-  stiffness: [5.2, 8.6], // each label has its own spring in this range, so they don't move in lockstep
-  damping: 0.4, // below 1 they overshoot and settle: a sway rather than a slide
-};
-
 // A pointer that moves less than this many px between down and up counts as a click, not a drag.
 export const CLICK_SLOP_PX = 6;
-
-// The nametag fades this long after the pointer stops moving.
-export const NAMETAG_IDLE_MS = 3000;
 
 // Camera: how long after a drag ends before the slow auto-rotate resumes.
 export const AUTOROTATE_RESUME_MS = 3500;

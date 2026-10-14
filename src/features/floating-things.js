@@ -117,14 +117,14 @@ export async function createFloatingThings({ canvas, things, onSelect = () => {}
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(FOV, 1, 10, 20000);
 
-  // A soft studio environment for the reflections, a key light for form, and the same faint teal edge as the home screen.
+  // A soft studio environment for the reflections, a key light for form, and the same faint blue edge as the home screen.
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.5;
   pmrem.dispose();
   const key = new THREE.DirectionalLight(0xfff3e6, 1.15);
   key.position.set(-700, 1000, 1300);
-  const rim = new THREE.DirectionalLight(0x3fe0c5, 0.5);
+  const rim = new THREE.DirectionalLight(0x6fb3e0, 0.5);
   rim.position.set(1000, 300, -900);
   scene.add(key, rim);
 

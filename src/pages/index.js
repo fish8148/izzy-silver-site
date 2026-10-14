@@ -6,13 +6,12 @@ import { sayHiPage } from './say-hi.js';
 export { createPageRouter } from './router.js';
 
 /**
- * One entry per floating label (keys match each label's data-page).
- * To build a new page later: write { render(page), blocks(page), stagger? } and swap it in here —
- * the transition, page menu and history handling come for free (add its id to MENU_ORDER in router.js too). A page can also have a `preload()`, which main.js
- * calls once the hero is up and the browser is idle (say hi uses it to fetch the head scan ahead of time).
+ * One entry per page section in index.html (keys match each section's data-page).
+ * To build a new page later: write { render(page), blocks(page), stagger? } and add it here and to pages/order.js —
+ * the scrolling between pages and history handling come for free. A page can also have a `preload()`, which main.js
+ * calls once the browser is idle (about me and say hi use it to fetch the character ahead of time).
  *
- * My things is switched off for now. To bring it back: uncomment it here, in pages/order.js, and in index.html (its label
- * and section).
+ * My things is switched off for now. To bring it back: uncomment it here, in pages/order.js, and in index.html (its section).
  */
 export const pages = {
   about: aboutPage,
