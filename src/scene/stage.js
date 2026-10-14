@@ -19,9 +19,12 @@ const easeInOut = (t) => t * t * (3 - 2 * t);
  *
  * `framing` ({ feet, span }) places the character in the canvas; left out, it comes from the CSS (--frame-feet,
  * --frame-span). `events` is the element dragging happens on (default: the canvas): a page's character draws on a canvas
- * larger than his column, which lets the mouse through, and the column takes the drags.
+ * larger than his column, which lets the mouse through, and the column takes the drags. `centerX()`, if given, is where
+ * (px from the canvas's left) the character's centre line should be, for a canvas that reaches further on one side of
+ * him than the other: the camera renders that canvas as a window onto a wider, centred view, so he stays put and turning
+ * the camera still orbits around him.
  */
-export function createStage(canvas, { framing, events = canvas } = {}) {
+export function createStage(canvas, { framing, events = canvas, centerX } = {}) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -122,14 +125,19 @@ export function createStage(canvas, { framing, events = canvas } = {}) {
     const height = canvas.clientHeight || 1;
     // Setting a canvas's width/height wipes it, even to the same values. Only do it when the size really changed, so a
     // stray resize callback can't blank the character for a frame.
-    if (sizedTo === `${width}x${height}`) return;
-    sizedTo = `${width}x${height}`;
+    const cx = centerX ? centerX() : width / 2;
+    if (sizedTo === `${width}x${height}x${cx}`) return;
+    sizedTo = `${width}x${height}x${cx}`;
     renderer.setSize(width, height, false);
-    camera.aspect = width / height;
+    // the full view is centred on him: as wide as twice his furthest side; the canvas shows its part of it
+    const full = 2 * Math.max(cx, width - cx);
+    camera.aspect = full / height;
+    if (full > width + 0.5) camera.setViewOffset(full, height, full / 2 - cx, 0, width, height);
+    else camera.clearViewOffset();
     camera.updateProjectionMatrix();
     frame();
   }
-  new ResizeObserver(resize).observe(canvas);
+  new ResizeObserver(() => resize()).observe(canvas);
 
   // Smoothly swing the camera back to face the front of the character.
   function easeToFront(seconds = 1.1) {
@@ -174,6 +182,8 @@ export function createStage(canvas, { framing, events = canvas } = {}) {
     lights,
     frame,
     resize,
+    /** Metres per pixel at the character's distance (to turn a distance on screen into one in his world). */
+    metresPerPx: () => (2 * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * camera.position.distanceTo(controls.target)) / (canvas.clientHeight || 1),
     update,
     easeToFront,
     snapToFront,

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CALM_OPENERS, CLICK_CYCLE, CLIPS, DANCE, ENTRANCES, OPENERS } from '../config.js';
+import { AWAY, CALM_OPENERS, CLICK_CYCLE, CLIPS, DANCE, ENTRANCES, OPENERS, SPEED } from '../config.js';
 import { createAnimator } from '../scene/animator.js';
 import { cloneCharacter, createHitProxies, loadCharacter, measureAnchors, measureGroundLift } from '../scene/character.js';
 import { createPicking } from '../scene/picking.js';
@@ -12,8 +12,8 @@ import { createStage } from '../scene/stage.js';
  *   arriving   every time the page is shown he arrives with the next opener (a wave, a salute, a swing, a moonwalk,
  *              a swim, a climb or the dance party). The order is shuffled, played to the end, then shuffled again; it's
  *              shared by both pages and remembered across visits, so it never repeats until it has been through them all.
- *   clicking   a click on him walks CLICK_CYCLE: idle → wave → spin → arrow → warrior → moonwalk → dance party → salute
- *              → idle…
+ *   clicking   a click on him walks CLICK_CYCLE: idle → wave → spin → arrow → warrior → moonwalk away (across the page
+ *              and off the screen, then a swing back in) → dance party → salute → idle…
  *   idling     he does the odd idle action, and dragging turns the camera, which drifts round on its own in between.
  */
 
@@ -99,7 +99,20 @@ export async function createPanelCharacter({ canvas, column = canvas, framing = 
       return c.height ? (framing.span * column.getBoundingClientRect().height) / c.height : framing.span;
     },
   };
-  const stage = createStage(canvas, { framing: inCanvas, events: column });
+  // His canvas reaches left to the page's edge (so the moonwalk can carry him off the screen): measure how far that is.
+  const page = column.closest('.page') ?? document.body;
+  const measure = () => {
+    const reach = Math.max(0, column.getBoundingClientRect().left - page.getBoundingClientRect().left);
+    column.style.setProperty('--over-left', `${Math.round(reach)}px`);
+  };
+  measure();
+  new ResizeObserver(measure).observe(page);
+  const centerX = () => {
+    const c = canvas.getBoundingClientRect();
+    const b = column.getBoundingClientRect();
+    return b.left + b.width / 2 - c.left;
+  };
+  const stage = createStage(canvas, { framing: inCanvas, events: column, centerX });
 
   character.root.position.y = character.floorOffset;
   stage.scene.add(character.root);
@@ -181,15 +194,41 @@ export async function createPanelCharacter({ canvas, column = canvas, framing = 
 
   // ---- clicking: the next thing in CLICK_CYCLE ---------------------------------------------------------------------
   let step = 0; // where he is in CLICK_CYCLE
+  let awayFor = 0; // seconds left off the screen before he swings back (0: not away)
+
+  /** Moonwalk left across the page, in front of the text, until he's off the screen; then wait, and swing back in. */
+  function goAway() {
+    awayFor = 0;
+    const offScreen = centerX() * stage.metresPerPx() + AWAY.margin; // (the canvas's left edge is the page's)
+    const started = animator.playTravel(AWAY.clip, {
+      to: -offScreen,
+      yaw: THREE.MathUtils.degToRad(AWAY.yaw),
+      speed: AWAY.speed,
+      ease: AWAY.ease,
+      timeScale: SPEED.moonwalk ?? 1,
+      onArrive: () => (awayFor = AWAY.wait),
+    });
+    if (!started) return;
+    stage.holdCamera('entrance'); // he leaves (and comes back) seen from the front
+    stage.easeToFront(0.5);
+  }
+
+  function comeBack() {
+    awayFor = 0;
+    stage.snapToFront(); // (nobody can see it: he's off the screen)
+    animator.playEntrance(AWAY.back, { halfWidth: halfWidth(), onDone: () => stage.releaseCamera('entrance') });
+  }
 
   function click() {
     animator.interrupt(); // (anything he's in the middle of, the dance included, is cut short)
+    awayFor = 0;
     stage.releaseCamera('entrance');
     // treading water (after the swim) is outside the cycle: a click brings him back to idle, its start
     step = animator.getState().rest === 'tread' ? 0 : (step + 1) % CLICK_CYCLE.length;
     const entry = CLICK_CYCLE[step];
     if (typeof entry === 'string') animator.playRest(entry);
     else if (entry.dance) startParty();
+    else if (entry.away) goAway();
     else animator.playSequence(entry.clips, { then: entry.then ?? 'idle' });
   }
 
@@ -200,11 +239,7 @@ export async function createPanelCharacter({ canvas, column = canvas, framing = 
    * How far his column's edge is from the centre at his distance, in metres (the moonwalk starts just past it, so he only
    * crosses a little of the page beside him).
    */
-  const halfWidth = () => {
-    const { camera, controls } = stage;
-    const canvasHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.distanceTo(controls.target) * camera.aspect;
-    return canvasHalf * (column.clientWidth / (canvas.clientWidth || 1));
-  };
+  const halfWidth = () => (column.clientWidth / 2) * stage.metresPerPx();
 
   function arrive() {
     const name = nextOpener();
@@ -234,6 +269,7 @@ export async function createPanelCharacter({ canvas, column = canvas, framing = 
     stage.renderer.setAnimationLoop((now) => {
       const dt = Math.min(Math.max((now - last) / 1000, 0), 0.1);
       last = now;
+      if (awayFor > 0 && (awayFor -= dt) <= 0) comeBack();
       animator.update(dt);
       updateParty(dt);
       stage.update(dt);
@@ -254,6 +290,7 @@ export async function createPanelCharacter({ canvas, column = canvas, framing = 
   function reset() {
     animator.abortSequence(); // (a dance left running when the page was hidden)
     if (party.active) endParty();
+    awayFor = 0;
     stage.releaseCamera('entrance');
     stage.snapToFront();
     return arrive();
@@ -266,6 +303,7 @@ export async function createPanelCharacter({ canvas, column = canvas, framing = 
     stop,
     reset,
     click,
+    goAway,
     get running() {
       return running;
     },

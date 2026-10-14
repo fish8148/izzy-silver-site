@@ -129,7 +129,8 @@
 /* the character, standing on the black page: no panel, the canvas is transparent */
 .about-intro__character,
 .hi-side {
-  /* how far his canvas reaches past the column */
+  /* how far his canvas reaches past the column (to the left: the page's left edge, measured by panel-character.js as
+     --over-left, so the moonwalk can carry him across the text and off the screen) */
   --over-top: 140px;
   --over-side: 240px;
   --over-bottom: 40px;
@@ -149,16 +150,21 @@
   /* (a canvas doesn't stretch between inset edges like a div: it needs its size spelled out) */
   position: absolute;
   top: calc(-1 * var(--over-top));
-  left: calc(-1 * var(--over-side));
-  width: calc(100% + 2 * var(--over-side));
+  left: calc(-1 * var(--over-left, var(--over-side)));
+  width: calc(100% + var(--over-left, var(--over-side)) + var(--over-side));
   height: calc(100% + var(--over-top) + var(--over-bottom));
   display: block;
   pointer-events: none;
   /* its edges fade out, so anything crossing them (a moonwalk coming in, the start of a swing) fades rather than being cut
      off in a straight line */
-  --fade: min(120px, var(--over-side));
   mask-image:
-    linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent),
+    linear-gradient(
+      to right,
+      transparent,
+      #000 min(120px, var(--over-left, var(--over-side))),
+      #000 calc(100% - min(120px, var(--over-side))),
+      transparent
+    ),
     linear-gradient(to bottom, transparent, #000 min(90px, var(--over-top)), #000);
   mask-composite: intersect;
   opacity: 0; /* fades in once he has drawn his first frame (panel-character.js adds .is-ready) */

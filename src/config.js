@@ -26,10 +26,22 @@ export const CLICK_CYCLE = [
   'spin',
   { clips: ['shooting arrow'] },
   'warrior',
-  'moonwalk',
+  { away: true }, // he turns, moonwalks across the page in front of the text and off the screen, then swings back (AWAY)
   { dance: true },
   { clips: ['saluting'] },
 ];
+// The moonwalk in the click cycle: he turns side-on and moonwalks left, across the page in front of the text, until he's
+// off the screen; `wait` seconds later he swings back in to where he stands (the `back` entrance).
+export const AWAY = {
+  clip: 'moonwalking',
+  speed: 0.85, // m/s, his glide (the clip repeats as long as it takes)
+  ease: 0.6, // s to get up to that speed
+  yaw: 90, // degrees he turns from the camera (side-on, facing the way he came: a moonwalk goes backwards)
+  margin: 0.7, // m past the screen's edge before he counts as gone
+  wait: 3, // s off the screen
+  back: 'swing',
+};
+
 // Resting states that play once and hold their last frame instead of looping (none at the moment)
 export const ONCE = new Set();
 

@@ -58,8 +58,9 @@ mesh and textures shared, its own skeleton and animations), set up by `src/featu
   shuffled again (never the same one twice across the seam). It's shared by both pages and remembered in the browser's
   localStorage (`izzy_silver:openers`), so it carries on across visits. Visitors who ask for reduced motion only get the wave
   and salute (`CALM_OPENERS`).
-- **Click him** to walk `CLICK_CYCLE`: idle → wave → spin (hurricane kick) → shooting arrow → warrior idle → moonwalk (in
-  place) → **dance party** → salute → idle… A string is a resting state that keeps playing until the next click; an object
+- **Click him** to walk `CLICK_CYCLE`: idle → wave → spin (hurricane kick) → shooting arrow → warrior idle → **moonwalk away**
+  (he turns side-on and moonwalks left across the page, in front of the text, off the screen; 3 s later he swings back in: `AWAY`)
+  → **dance party** → salute → idle… A string is a resting state that keeps playing until the next click; an object
   plays once then goes back to idle. A drag (turning the camera) is not a click, and a click always interrupts whatever he's doing
   (an arrival, an idle action, the arrow, the dance) and moves on to the next one (treading water goes to idle). (The
   breakdance freeze and dying were tried and left out: both travel too far for the character's column and drift out of view.)

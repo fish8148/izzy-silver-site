@@ -8,6 +8,8 @@ import { CLIPS, CROSSFADE, ENTRANCES, ENTRANCE_SETTLE, IDLE_ACTIONS, IDLE_AFTER,
  *                 click). Those in ONCE play once and hold their last frame. Treading water is a rest state
  *                 too, but only the swim entrance ends in it.
  *   entrance      one clip that brings the character in (a wave, a swing, a moonwalk…), then idle
+ *   travel        a looping clip that carries him away (the moonwalk off the screen); he stays wherever it ends until
+ *                 something else is played
  *   idle action   after IDLE_AFTER seconds standing in idle he does one of IDLE_ACTIONS once, then idle again
  *   sequence      one-shot clips played back to back (the dance party, the arrow). Each is LoopOnce +
  *                 clampWhenFinished, and the next step / return to rest is triggered by the
@@ -32,6 +34,7 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
   let restState = 'idle'; // where we return after a sequence
   let sequence = null; // { names, index, action, onStep, onDone }
   let entrance = null; // { name, def, action, elapsed, duration, onDone }
+  let travel = null; // { action, elapsed, arrived, onArrive }
   let idleAction = null; // { def, action }: the idle action that is playing, if any
   let lastIdleClip = null;
   let idleTime = 0; // seconds spent standing in idle
@@ -91,6 +94,7 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
   function dropTransients() {
     const done = entrance?.onDone;
     entrance = null;
+    travel = null;
     if (idleAction) endIdleAction();
     done?.(false);
   }
@@ -167,6 +171,32 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
     entrance = null;
     playRest(def.after ?? 'idle', { fade: def.settle ?? ENTRANCE_SETTLE });
     onDone?.(true);
+  }
+
+  // ---- travel -------------------------------------------------------------------------------------------------------
+  /**
+   * Loop `clip` while gliding from where he stands to x = `to` (metres), turned `yaw` (radians) from the camera: speeding
+   * up over `ease` seconds, then at a steady `speed` (m/s). `onArrive()` once he gets there; he keeps going through the
+   * clip on that spot until something else is played.
+   */
+  function playTravel(clip, { to, yaw = 0, speed = 1, ease = 0.5, timeScale = 1, onArrive } = {}) {
+    if (sequence) return false;
+    dropTransients();
+    idleTime = 0;
+    const distance = Math.abs(to);
+    const mine = { action: null, elapsed: 0, arrived: false, onArrive };
+    mine.action = crossTo(need(clip), { timeScale, fade: 0.5 });
+    travel = mine;
+    motions.set(mine.action, () => {
+      const t = mine.elapsed;
+      const covered = t < ease ? (speed * t * t) / (2 * ease) : speed * (t - ease / 2);
+      return { x: Math.sign(to) * Math.min(covered, distance), z: 0, yaw };
+    });
+    mine.distance = distance;
+    mine.speed = speed;
+    mine.ease = ease;
+    emit();
+    return true;
   }
 
   // ---- idle actions ---------------------------------------------------------------
@@ -290,7 +320,7 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
     while (finished.length) handleFinished(finished.shift());
     for (const [clip, left] of cooldowns) if (left > 0) cooldowns.set(clip, Math.max(left - dt, 0));
 
-    const standing = !sequence && !entrance && !idleAction && restState === 'idle' && current === actions[CLIPS.idle];
+    const standing = !sequence && !entrance && !travel && !idleAction && restState === 'idle' && current === actions[CLIPS.idle];
     if (standing) {
       idleTime += dt;
       if (idleTime >= IDLE_AFTER) startIdleAction();
@@ -298,6 +328,15 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
 
     mixer.update(dt);
     if (entrance) entrance.elapsed += dt;
+    if (travel) {
+      travel.elapsed += dt;
+      const { ease, speed, distance } = travel;
+      const covered = travel.elapsed < ease ? (speed * travel.elapsed ** 2) / (2 * ease) : speed * (travel.elapsed - ease / 2);
+      if (!travel.arrived && covered >= distance) {
+        travel.arrived = true;
+        travel.onArrive?.();
+      }
+    }
     placeRoot();
   }
 
@@ -314,6 +353,7 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
       clip: nameOf(current),
       busy: !!sequence,
       entrance: entrance?.name ?? null,
+      away: travel ? (travel.arrived ? 'gone' : 'going') : null,
       idleAction: idleAction?.def.clip ?? null,
       idleTime,
       cooldowns: Object.fromEntries([...cooldowns].filter(([, left]) => left > 0)),
@@ -324,6 +364,7 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
   return {
     update,
     playEntrance,
+    playTravel,
     interrupt,
     playRest,
     playSequence,

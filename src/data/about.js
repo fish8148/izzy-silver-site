@@ -33,7 +33,10 @@ export const about = {
       role: 'website developer',
       description:
         'At QDoc, a Winnipeg healthcare technology company, I was the website developer for three years, building and maintaining the marketing site that introduced patients and partners to the company’s app. I helped raise awareness and usage of the application, and I helped shape QDoc’s brand identity, including the typography and colour palette the company still uses today. I also helped oversee co-op students from Red River College Polytech’s Web Development program, which gave me early experience reviewing other people’s work and supporting teammates who were newer to the codebase.',
-      photos: [],
+      photos: [
+        { src: 'photos/qdoc-human-rights-museum', alt: 'The Canadian Museum for Human Rights in Winnipeg at night, its glass shell and tower lit up' },
+        { src: 'photos/qdoc-jets-game', alt: 'The Winnipeg Jets mascots waving flags on the ice in front of a crowd in white' },
+      ],
     },
     {
       slug: 'uwaterloo',
