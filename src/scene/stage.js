@@ -16,8 +16,11 @@ const easeInOut = (t) => t * t * (3 - 2 * t);
  * Renderer, camera, orbit controls and lights.
  * The scene is deliberately restrained: soft light, no tone mapping, transparent canvas,
  * so the character sits in the same flat dark world as the page around it.
+ *
+ * `framing` ({ feet, span }) places the character in the canvas; left out, it comes from the CSS (--frame-feet,
+ * --frame-span), which the home screen's labels are laid out from too. (The say hi panel passes its own.)
  */
-export function createStage(canvas) {
+export function createStage(canvas, { framing } = {}) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -96,8 +99,8 @@ export function createStage(canvas) {
   let characterHeight = 1.8;
   function frame(height = characterHeight) {
     characterHeight = height;
-    const feet = readCssNumber('--frame-feet', 0.87);
-    const span = readCssNumber('--frame-span', 0.66);
+    const feet = framing?.feet ?? readCssNumber('--frame-feet', 0.87);
+    const span = framing?.span ?? readCssNumber('--frame-span', 0.66);
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 
     // Feet sit at `feet` of the viewport height and the head-top `span` above them.

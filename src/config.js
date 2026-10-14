@@ -84,9 +84,9 @@ export const FACE_LIFT = {
   maxPull: 1.5, // the furthest one drag can pull, so a wild fling can't throw the face off the screen
   follow: 26, // how tightly the surface chases the pointer: higher is snappier, lower is gooier
   resetMs: 480, // the head eases back to normal over this long
-  span: 0.5, // how much of the screen's height the head fills
-  centerY: 0.47, // where its centre sits on screen (0 = top, 1 = bottom)
-  maxWidth: 0.7, // ...and it never gets wider than this share of the screen (portrait phones)
+  span: 0.6, // how much of its panel's height the head fills
+  centerY: 0.47, // where its centre sits in the panel (0 = top, 1 = bottom)
+  maxWidth: 0.8, // ...and it never gets wider than this share of the panel's width
   turn: 0, // radians about the vertical axis, if the scan ever comes out facing away from the camera
   swing: 48, // degrees the camera can orbit to either side (the scan's back is open)
 };

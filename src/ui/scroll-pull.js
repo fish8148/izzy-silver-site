@@ -191,8 +191,9 @@ export function createScrollPull({ router, menu, hero }) {
     (event) => {
       if (event.ctrlKey || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return; // pinch-zoom, or sideways
       if (!(event.target instanceof Element)) return;
-      // (with the edge menu open, scrolling anywhere walks the menu; otherwise the viewer and interact menu keep theirs)
-      if (!menu.isOpen && event.target.closest('.carousel:not([hidden]), .interact-menu')) return;
+      // (with the edge menu open, scrolling anywhere walks the menu; otherwise the viewer, the interact menu and say hi's
+      // message box keep theirs)
+      if (!menu.isOpen && event.target.closest('.carousel:not([hidden]), .interact-menu, textarea')) return;
       const dy = event.deltaY * (event.deltaMode === 1 ? 33 : 1);
       const scroller = scrollerFor(event.target);
       if (feed(dy, scroller)) event.preventDefault();

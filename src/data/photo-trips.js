@@ -17,7 +17,7 @@ export const trips = [
   {
     slug: 'toronto',
     name: 'toronto',
-    description: 'extended family lives out there. love the food: my favourite restaurants so far have been sushi on bloor and brown donkatsu.',
+    description: 'my extended family lives here, so i’m back often. the food is the best part: my favourites so far are sushi on bloor and brown donkatsu.',
     photos: [
       { src: 'toronto1', shape: 'wide', caption: '' },
       { src: 'toronto2', shape: 'wide', caption: '' },
@@ -28,7 +28,7 @@ export const trips = [
   {
     slug: 'camp',
     name: 'camp',
-    description: 'i’ve worked with my friends at a wilderness summer camp for the past 3 summers. my latest role was program coordinator, where i created and led all camp-wide programs. in the past i’ve been a counsellor, which included leading canoe camping trips.',
+    description: 'three summers at a wilderness camp, working alongside my friends. i started as a counsellor leading canoe trips, and most recently was program coordinator, planning and running every camp-wide program.',
     photos: [
       { src: 'camp1', shape: 'wide', caption: '' },
       { src: 'camp2', shape: 'tall', caption: '' },
@@ -48,7 +48,7 @@ export const trips = [
   {
     slug: 'moab',
     name: 'moab',
-    description: 'white water rafting with my dad and little brother. 4 nights sleeping by the colorado and green rivers.',
+    description: 'white water rafting with my dad and little brother: four nights camping along the green and colorado rivers.',
     photos: [
       { src: 'moab1', shape: 'wide', caption: '' },
       { src: 'moab2', shape: 'wide', caption: '' },
@@ -62,7 +62,7 @@ export const trips = [
   {
     slug: 'costa-rica',
     name: 'costa rica',
-    description: 'grad trip with my family! we stayed in tamarindo, cerro chato, and puntarenas. favourite dish from the trip has got to be casado.',
+    description: 'my grad trip with my family, through tamarindo, cerro chato and puntarenas. the best thing i ate: casado.',
     photos: [
       { src: 'costarica4', shape: 'wide', caption: '' },
       { src: 'costarica1', shape: 'tall', caption: '' },
@@ -74,8 +74,8 @@ export const trips = [
     slug: 'poland',
     name: 'poland',
     description: [
-      'my grandfather being a holocaust survivor made this trip very impactful. a few of my friends and i had the amazing opportunity to do march of the living, a holocaust education trip. we visited auschwitz, auschwitz-birkenau, treblinka, and majdanek.',
-      'accompanying us on this trip was holocaust survivor and educator alex buckman. learning his story and philosophy on life first hand was a life-changing experience for me. he had a personal motto that i’ve adopted as my own: “my religion is kindness”.',
+      'my grandfather survived the holocaust, so this trip meant a lot to me. a few friends and i joined march of the living, a holocaust education trip to auschwitz, auschwitz-birkenau, treblinka and majdanek.',
+      'we travelled with alex buckman, a holocaust survivor and educator. hearing his story and outlook on life first hand changed me, and i’ve taken his motto as my own: “my religion is kindness.”',
       'read his story [here](https://abcbookworld.com/writer/buckman-alex/).',
     ],
     photos: [
@@ -90,7 +90,7 @@ export const trips = [
   {
     slug: 'washington',
     name: 'washington',
-    description: 'grade 12 school trip!! we visited the holocaust museum and the smithsonians, and watched moulin rouge at the john f. kennedy center. favourite smithsonian: the national museum of african american history and culture.',
+    description: 'my grade 12 school trip: the holocaust memorial museum, the smithsonians, and moulin rouge at the kennedy center. my favourite smithsonian was the national museum of african american history and culture.',
     photos: [
       { src: 'washington2', shape: 'wide', caption: '' },
       { src: 'washington1', shape: 'tall', caption: '' },

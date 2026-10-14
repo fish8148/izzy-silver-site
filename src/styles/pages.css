@@ -764,12 +764,246 @@
   display: inline-block;
 }
 
-/* ---------- say hi ---------- */
-/* the stage fills the whole page so a stretched head can go anywhere; presses on empty space orbit the camera */
-.hi-stage {
+/* ---------- say hi (the "Note" layout, 20b) ---------- */
+/* A sentence-form on the left, the head scan in a panel on the right with the links under it. One screen on a laptop;
+   under 960px it stacks and scrolls. */
+.page--hi {
+  --hi-blue: #6fb3e0;
+  --hi-blue-hover: #a9d3ef;
+  --hi-line: #262626;
+  --hi-underline: #3a3a3a;
+  --hi-placeholder: #4a4a4a;
+  --hi-muted: #5a5a5a;
+  --hi-secondary: #8f8f8f;
+  --hi-sentence: clamp(24px, 2.66vw, 34px);
+  background: #000;
+  transition: background-color 0.4s ease;
+}
+
+@starting-style {
+  .page--hi {
+    background-color: transparent; /* fades to black as the page opens, instead of snapping */
+  }
+}
+
+.hi {
   position: absolute;
   inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 64px;
+  padding: 72px 56px 56px;
+  overflow-y: auto;
+  scrollbar-width: none;
   pointer-events: auto;
+}
+
+.hi::-webkit-scrollbar {
+  display: none;
+}
+
+.hi-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.hi-form,
+.hi-sent {
+  display: flex;
+  flex-direction: column;
+}
+
+.hi-form {
+  gap: 28px;
+}
+
+.hi-form[hidden],
+.hi-sent[hidden] {
+  display: none;
+}
+
+.hi-sentence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px;
+  font-size: var(--hi-sentence);
+  line-height: 1.5;
+  color: #fff;
+}
+
+.hi-input,
+.hi-message {
+  font: inherit;
+  color: inherit;
+  border: none;
+  outline: none;
+}
+
+.hi-input {
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 0 4px;
+  background: none;
+  border-bottom: 1px solid var(--hi-underline);
+  border-radius: 0;
+  color: var(--hi-blue);
+  transition: border-color 0.2s ease;
+}
+
+.hi-input--name {
+  width: 8.8em; /* 300px at the design's 34px */
+}
+
+.hi-input--email {
+  width: 12.35em; /* 420px */
+}
+
+.hi-input:focus-visible {
+  border-bottom-color: var(--hi-blue);
+}
+
+.hi-input::placeholder,
+.hi-message::placeholder {
+  color: var(--hi-placeholder);
+  opacity: 1;
+}
+
+.hi-message {
+  height: 160px;
+  resize: none;
+  padding: 24px 28px;
+  background: #121212;
+  border-radius: 28px;
+  font-size: 20px;
+  line-height: 1.5;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow 0.2s ease;
+}
+
+.hi-message:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--hi-line);
+}
+
+.hi-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 28px;
+}
+
+.hi-send {
+  padding: 14px 28px;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1.2;
+  color: #000;
+  background: var(--hi-blue);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.hi-send:disabled {
+  color: var(--hi-muted);
+  background: #1c1c1c;
+  cursor: default;
+}
+
+.hi-send:not(:disabled):hover {
+  background: var(--hi-blue-hover);
+}
+
+.hi-alt,
+.hi-error {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--hi-muted);
+}
+
+.hi-copy {
+  padding: 0;
+  font: inherit;
+  color: var(--hi-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.hi-copy:hover {
+  color: var(--hi-blue-hover);
+}
+
+.hi-error {
+  margin-top: -12px; /* (sits just under the button: the form's 28px gap is too loose for it) */
+}
+
+.hi-error[hidden] {
+  display: none;
+}
+
+/* sent: replaces the form */
+.hi-sent {
+  gap: 20px;
+  outline: none;
+}
+
+.hi-sent__thanks {
+  margin: 0;
+  font-size: clamp(36px, 4.06vw, 52px);
+  line-height: 1.1;
+  color: var(--hi-blue);
+  overflow-wrap: anywhere;
+}
+
+.hi-sent__line {
+  margin: 0;
+  font-size: var(--hi-sentence);
+  line-height: 1.3;
+  color: #fff;
+}
+
+.hi-sent__again {
+  align-self: flex-start;
+  margin-top: 12px;
+  padding: 0;
+  font: inherit;
+  font-size: 15px;
+  color: var(--hi-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.hi-sent__again:hover {
+  color: var(--hi-secondary);
+}
+
+/* the character: a dark panel he stands in (drag to turn the camera, click him for the next move) */
+.hi-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+}
+
+.hi-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  background: #0a0a0a;
+  box-shadow: inset 0 0 0 1px var(--hi-line);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -778,9 +1012,8 @@
   display: block;
   width: 100%;
   height: 100%;
-  touch-action: none;
   cursor: default;
-  opacity: 0; /* fades in once the head has drawn its first frame (face-lift.js adds .is-ready) */
+  opacity: 0; /* fades in once he has drawn his first frame (panel-character.js adds .is-ready) */
   transition: opacity 0.7s ease;
 }
 
@@ -788,126 +1021,88 @@
   opacity: 1;
 }
 
-.hi-canvas.is-over-head {
-  cursor: grab;
+.hi-canvas.is-hovering-character {
+  cursor: pointer;
 }
 
-.hi-canvas.is-grabbing {
+.hi-canvas.is-dragging {
   cursor: grabbing;
 }
 
 .hi-note {
   position: absolute;
   left: 50%;
-  top: 47%;
+  top: 50%;
   translate: -50% -50%;
   margin: 0;
-  max-width: 28ch;
+  width: 80%;
   text-align: center;
-  color: var(--muted);
-  font-size: 14px;
+  color: var(--hi-secondary);
+  font-size: 13px;
 }
 
-.hi-contact {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 5.5%;
+.hi-links {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: var(--header-size);
-  line-height: 1.32;
-  letter-spacing: -0.012em;
-  pointer-events: none; /* only the words themselves are clickable, so drags beside them still reach the stage */
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  font-size: 15px;
 }
 
 .hi-link {
-  pointer-events: auto;
-  color: #fff;
+  color: var(--hi-secondary);
   text-decoration: none;
-  /* the same underline that slides in under the home-screen labels */
-  background-image: linear-gradient(currentColor, currentColor);
-  background-repeat: no-repeat;
-  background-position: left bottom;
-  background-size: 0 1px;
-  transition: background-size 0.28s ease;
+  transition: color 0.2s ease;
 }
 
 .hi-link:hover,
 .hi-link:focus-visible {
-  background-size: 100% 1px;
+  color: var(--hi-blue);
 }
 
-.hi-link.is-plain {
-  background: none;
-}
-
-.hi-tools {
-  position: absolute;
-  left: clamp(20px, 3.4vw, 64px);
-  bottom: clamp(18px, 4.4vh, 48px);
-  display: grid;
-  justify-items: start;
-  gap: 10px;
-  pointer-events: none;
-}
-
-.hi-reset {
-  pointer-events: auto;
-  padding: 0.5em 1.15em;
-  font-size: 14px;
-  line-height: 1.2;
-  color: var(--fg);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.hi-reset:hover,
-.hi-reset:focus-visible {
-  background: rgba(255, 255, 255, 0.13);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.hi-hint {
-  margin: 0;
-  max-width: 17em;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--muted);
-}
-
-.hi-hint__touch {
-  display: none;
-}
-
-@media (hover: none) {
-  .hi-hint__mouse {
-    display: none;
+/* narrower than a laptop: one column that scrolls, the form first and the head under it */
+@media (max-width: 959px) {
+  .hi {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    padding: max(56px, env(safe-area-inset-top)) clamp(20px, 6vw, 56px) max(32px, env(safe-area-inset-bottom));
   }
 
-  .hi-hint__touch {
-    display: inline;
+  .hi-main {
+    flex: none;
+    justify-content: flex-start;
+  }
+
+  .hi-stage {
+    flex: none;
+    height: clamp(300px, 52vh, 460px);
   }
 }
 
-@media (max-width: 720px) {
-  .hi-contact {
-    bottom: 8%;
-    font-size: clamp(18px, 5.6vw, 26px);
+@media (max-width: 640px) {
+  .page--hi {
+    --hi-sentence: clamp(22px, 6.4vw, 28px);
   }
 
-  .hi-tools {
-    left: 0;
-    right: 0;
-    bottom: max(16px, 3.4vh);
-    justify-items: center;
-    text-align: center;
+  .hi-sentence {
+    gap: 6px 10px;
+  }
+
+  .hi-input--name,
+  .hi-input--email {
+    flex: 1 1 100%; /* a full line each: there's no room to sit them inside the sentence */
+  }
+
+  .hi-message {
+    height: 140px;
+    padding: 18px 22px;
+    font-size: 17px;
+    border-radius: 22px;
+  }
+
+  .hi-send {
+    font-size: 18px;
+    padding: 12px 24px;
   }
 }
 

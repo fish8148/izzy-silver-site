@@ -435,7 +435,10 @@ export function createPageRouter({ hero, pages }) {
   });
 
   window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && current && !busy) goBack();
+    if (event.key !== 'Escape') return;
+    // in a form field (say hi), Esc just leaves the field: going home mid-sentence would be a surprise
+    if (event.target instanceof Element && event.target.matches('input, textarea')) return void event.target.blur();
+    if (current && !busy) goBack();
   });
 
   window.addEventListener('resize', () => {
@@ -541,7 +544,7 @@ export function createPageRouter({ hero, pages }) {
       const dy = touch.clientY - start.y;
       if (Math.abs(dy) < 80 || Math.abs(dy) < Math.abs(dx) * 1.6) return;
       const dir = dy < 0 ? 1 : -1; // a swipe up scrolls down
-      if (start.target.closest('.carousel:not([hidden]), .interact-menu, canvas:not(.hero__canvas)')) return;
+      if (start.target.closest('.carousel:not([hidden]), .interact-menu, canvas:not(.hero__canvas), textarea')) return;
       if (start.edges[dir > 0 ? 'bottom' : 'top']) scrollStep(dir);
     },
     { passive: true },

@@ -164,18 +164,20 @@ the drifting rows show copies of the photos and not just the real set (or the ca
 
 ## Say hi
 
-Your head scan in the middle (`public/head.glb`), in the style of the SM64 "Face Lift" toy, with your contact details underneath.
+The "Note" layout (handoff 20b, `design-ref/say-hi-ref/`). On the left, a contact form written as a sentence ("hi izzy, i'm ___ and
+you can reach me at ___"), a message box, a send button (enabled once there's a message) and "or email <address> click to copy".
+On the right, the home screen's character in a dark panel (`src/features/panel-character.js`): his own small stage, the same
+model and the same behaviour as at home (idle, with the odd idle action; click him for idle → wave → spin; drag to turn), minus
+the arrivals and the party. The links sit under the panel. Under 960px it stacks and scrolls.
 
-- **Press on the head and drag** to grab that spot of the surface and stretch it: everything within `radius` of the spot follows
-  the pointer, most at the spot and less and less toward the edge (a smooth bump, so it pulls like rubber and never comes to a
-  point). The stretch stays until you reset it: **right-click** or the **reset** button (the head eases back, exactly, over `resetMs`).
-- **Press on empty space and drag** to orbit the camera a little way either side (the scan is open at the back).
-- The light drifts slowly from side to side, which is what makes the stretched surface read as 3D.
-- The knobs are `FACE_LIFT` in `src/config.js`: `radius`, `maxPull`, `follow` (how gooey it feels), `resetMs`, how big the head is on
-  screen, `swing`, and `turn` if a new scan ever comes out facing the wrong way.
-- To use a different scan, replace `public/head.glb`. It is centred, scaled and un-rotated when it loads, so no preparation is needed.
-- **Your LinkedIn address goes in `src/data/contact.js`.** Until it's filled in, "linkedin" shows as plain text rather than a dead link.
-  The email there is a `mailto:` link.
+- **Where messages go:** `formEndpoint` in `src/data/contact.js`. **Empty for now**, so the button reads "send by email ↗": it opens a
+  new email to you in the visitor's own mail app with their message filled in, and the thank-you says "your email app should
+  open with it ready to send." Set `formEndpoint` to a form service's URL (a Formspree form, e.g. `https://formspree.io/f/abcdwxyz`,
+  works as is: it's sent `{ name, email, message }` as JSON) and the button becomes "send ↗", messages arrive in your inbox, and the
+  thank-you says "i'll get back to you soon." A failed send keeps the form as it was and says "couldn't send, try emailing instead."
+- **The links (linkedin, github, instagram) are `links` in `src/data/contact.js`.** One with no `href` is left off the page.
+- **The stretchy head scan** (`src/features/face-lift.js`, `public/head.glb`, `FACE_LIFT` in `src/config.js`) is set aside for now, not
+  deleted. Its knobs and behaviour are documented in that file.
 
 ## My things
 
@@ -226,7 +228,7 @@ centred and scaled to fit their circle automatically, so any size and origin wil
   `'tall'` or `'wide'`. Then point the data at the name **without an extension**, e.g. `{ src: 'photos/beach', ... }`, and
   the browser picks the smallest file that's still sharp (`src/ui/image.js`). A `src` with an extension is used as-is (the
   placeholder SVGs, which can be deleted once you've replaced them). Re-run the script after adding more; finished ones are skipped.
-- **Say hi:** `src/data/contact.js` (email and LinkedIn). **My things:** `src/data/things.js`. See those two sections above.
+- **Say hi:** `src/data/contact.js` (email, links, and where messages go). **My things:** `src/data/things.js`. See those two sections above.
 - The About text currently uses the wording from your reference screenshot. Change it freely.
 
 ## Adding the other interact options later

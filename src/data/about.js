@@ -14,7 +14,7 @@ export const about = {
     'I grew up with a passion for technology, design, and personal health.',
     'for my last co-op, I worked as an architectural visualization researcher for studio lab XR.',
   ],
-  portrait: { src: 'photos/about-portrait.svg', alt: 'a portrait of izzy' },
+  portrait: { src: 'photos/about-portrait', alt: 'a portrait of izzy' },
   resume: 'resume.pdf',
   highlights: [
     {
