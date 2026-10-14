@@ -141,6 +141,14 @@
   padding: 72px 0;
 }
 
+.about-intro.is-text-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.about-intro.is-text-only .about-intro__text {
+  max-width: 820px; /* (about as wide as the text was beside a portrait: lines that are easy to read) */
+}
+
 .about-intro__text {
   display: flex;
   flex-direction: column;

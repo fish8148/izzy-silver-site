@@ -41,10 +41,13 @@ function intro() {
     text.append(p);
   }
   text.append(resumeLink('about-intro__resume'));
-  const portrait = document.createElement('figure');
-  portrait.className = 'about-intro__portrait';
-  portrait.append(photoElement(about.portrait, { sizes: '(max-width: 959px) 92vw, 340px' }));
-  section.append(text, portrait);
+  section.append(text);
+  if (about.portrait) {
+    const portrait = document.createElement('figure');
+    portrait.className = 'about-intro__portrait';
+    portrait.append(photoElement(about.portrait, { sizes: '(max-width: 959px) 92vw, 340px' }));
+    section.append(portrait);
+  } else section.classList.add('is-text-only');
   return section;
 }
 
@@ -113,5 +116,5 @@ export const aboutPage = {
   },
 
   // the intro comes in one piece at a time: each paragraph, the link, the portrait (the rest is below the fold)
-  blocks: (page) => [...page.querySelectorAll('.about-intro__text > *'), page.querySelector('.about-intro__portrait')],
+  blocks: (page) => [...page.querySelectorAll('.about-intro__text > *'), page.querySelector('.about-intro__portrait')].filter(Boolean),
 };
