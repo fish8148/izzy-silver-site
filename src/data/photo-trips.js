@@ -4,7 +4,8 @@
  *
  *   slug         used in the page's anchors (#toronto); letters, numbers and dashes
  *   name         shown in the index and above the chapter (lowercase, like the rest of the site)
- *   description  1–2 sentences, shown under the name while you're in that trip. Leave it '' to show nothing.
+ *   description  shown under the name while you're in that trip: a string, or a list of strings for several paragraphs.
+ *                [text](https://…) makes a link (blue, with an arrow, opens in a new tab). Leave it '' to show nothing.
  *   photos       in order; the first one is shown big. Each is
  *                  src      the photo's name in public/photos, without size or extension (`npm run prep:photos` makes
  *                           those from photos-src/)
@@ -16,7 +17,7 @@ export const trips = [
   {
     slug: 'toronto',
     name: 'toronto',
-    description: '',
+    description: 'extended family lives out there. love the food: my favourite restaurants so far have been sushi on bloor and brown donkatsu.',
     photos: [
       { src: 'toronto1', shape: 'wide', caption: '' },
       { src: 'toronto2', shape: 'wide', caption: '' },
@@ -27,7 +28,7 @@ export const trips = [
   {
     slug: 'camp',
     name: 'camp',
-    description: '',
+    description: 'i’ve worked with my friends at a wilderness summer camp for the past 3 summers. my latest role was program coordinator, where i created and led all camp-wide programs. in the past i’ve been a counsellor, which included leading canoe camping trips.',
     photos: [
       { src: 'camp1', shape: 'wide', caption: '' },
       { src: 'camp2', shape: 'tall', caption: '' },
@@ -47,7 +48,7 @@ export const trips = [
   {
     slug: 'moab',
     name: 'moab',
-    description: '',
+    description: 'white water rafting with my dad and little brother. 4 nights sleeping by the colorado and green rivers.',
     photos: [
       { src: 'moab1', shape: 'wide', caption: '' },
       { src: 'moab2', shape: 'wide', caption: '' },
@@ -61,7 +62,7 @@ export const trips = [
   {
     slug: 'costa-rica',
     name: 'costa rica',
-    description: '',
+    description: 'grad trip with my family! we stayed in tamarindo, cerro chato, and puntarenas. favourite dish from the trip has got to be casado.',
     photos: [
       { src: 'costarica4', shape: 'wide', caption: '' },
       { src: 'costarica1', shape: 'tall', caption: '' },
@@ -72,7 +73,11 @@ export const trips = [
   {
     slug: 'poland',
     name: 'poland',
-    description: '',
+    description: [
+      'my grandfather being a holocaust survivor made this trip very impactful. a few of my friends and i had the amazing opportunity to do march of the living, a holocaust education trip. we visited auschwitz, auschwitz-birkenau, treblinka, and majdanek.',
+      'accompanying us on this trip was holocaust survivor and educator alex buckman. learning his story and philosophy on life first hand was a life-changing experience for me. he had a personal motto that i’ve adopted as my own: “my religion is kindness”.',
+      'read his story [here](https://abcbookworld.com/writer/buckman-alex/).',
+    ],
     photos: [
       { src: 'poland1', shape: 'wide', caption: '' },
       { src: 'poland2', shape: 'tall', caption: '' },
@@ -85,7 +90,7 @@ export const trips = [
   {
     slug: 'washington',
     name: 'washington',
-    description: '',
+    description: 'grade 12 school trip!! we visited the holocaust museum and the smithsonians, and watched moulin rouge at the john f. kennedy center. favourite smithsonian: the national museum of african american history and culture.',
     photos: [
       { src: 'washington2', shape: 'wide', caption: '' },
       { src: 'washington1', shape: 'tall', caption: '' },

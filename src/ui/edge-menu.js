@@ -18,7 +18,6 @@ const ITEMS = [
   { id: null, text: 'homepage' },
   { id: 'about', text: 'about me' },
   { id: 'photos', text: 'photos' },
-  { id: 'my-things', text: 'my things' },
   { id: 'say-hi', text: 'say hi' },
 ];
 

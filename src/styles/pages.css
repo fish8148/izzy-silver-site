@@ -339,8 +339,10 @@
 .trips__index {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center; /* (a long description that still doesn't fit scrolls, rather than clipping the top) */
   min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
   padding: 0 40px 0 64px; /* (the left 24px stays clear for the edge menu's hot zone) */
 }
 
@@ -410,17 +412,42 @@
 }
 
 .trips__item.is-active .trips__desc {
-  max-height: 120px;
+  max-height: 480px;
   opacity: 1;
 }
 
 .trips__desc p {
   margin: 0;
-  padding: 8px 0 10px 14px;
+  padding-left: 14px;
   font-size: 15px;
   line-height: 1.5;
   color: var(--trip-desc);
   text-wrap: pretty;
+}
+
+/* (the padding sits on the paragraphs: on the box itself it would show even when it's closed) */
+.trips__desc p:first-child {
+  padding-top: 8px;
+}
+
+.trips__desc p:last-child {
+  padding-bottom: 10px;
+}
+
+.trips__desc p + p,
+.trips__now p + p {
+  margin-top: 0.6em;
+}
+
+.trips__desc-link {
+  color: var(--trip-blue);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.trips__desc-link:hover {
+  color: #a9d3ef;
 }
 
 .trips__now {
@@ -485,6 +512,22 @@
   border-radius: 28px;
 }
 
+/* shorter laptop screens: smaller names and descriptions, so a long one (poland) fits beside the rest */
+@media (min-width: 900px) and (max-height: 880px) {
+  .trips__list {
+    gap: 4px;
+  }
+
+  .trips__name {
+    font-size: clamp(30px, 3.2vw, 40px);
+  }
+
+  .trips__desc p {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .trips__item.is-active .trips__link {
     transform: none;
@@ -545,9 +588,13 @@
     font-size: 14px;
     line-height: 1.5;
     color: var(--trip-desc);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    max-height: 28vh; /* a long one (poland) scrolls in place instead of pushing the photos off the screen */
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .trips__now p {
+    margin: 0;
   }
 
   .trips__now:empty {

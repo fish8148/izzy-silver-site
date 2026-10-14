@@ -48,6 +48,33 @@ const SLIDE_R = 48;
 const T = { grow: 620, reveal: 240, flyBack: 520 };
 const SWIPE = 48; // px a swipe must travel to move along
 
+/**
+ * A trip's description as paragraphs (one string, or a list of them). `[text](https://…)` in one becomes a link: blue,
+ * with an arrow, opening in a new tab.
+ */
+function descParagraphs(description) {
+  const list = Array.isArray(description) ? description : description ? [description] : [];
+  return list.map((paragraph) => {
+    const p = document.createElement('p');
+    const parts = paragraph.split(/\[([^\]]+)\]\(([^)\s]+)\)/); // text, label, href, text, label, href, …, text
+    parts.forEach((part, k) => {
+      if (k % 3 === 0) {
+        if (part) p.append(part);
+      } else if (k % 3 === 1) {
+        const link = document.createElement('a');
+        link.className = 'trips__desc-link';
+        link.href = parts[k + 1];
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = `${part} ↗`;
+        link.setAttribute('aria-label', `${part} (opens in new tab)`);
+        p.append(link);
+      }
+    });
+    return p;
+  });
+}
+
 // Every photo, in page order, with the trip it belongs to
 const photos = trips.flatMap((trip, t) =>
   trip.photos.map((photo) => ({ ...photo, src: `photos/${photo.src}`, alt: photo.alt ?? `a photo from ${trip.name}`, trip: t })),
@@ -124,19 +151,18 @@ function createPhotos(page) {
     count.setAttribute('aria-label', `${trip.photos.length} photos`);
     link.append(name, count);
     item.append(link);
-    if (trip.description) {
+    const paragraphs = descParagraphs(trip.description);
+    if (paragraphs.length) {
       const desc = document.createElement('div');
       desc.className = 'trips__desc';
-      const text = document.createElement('p');
-      text.textContent = trip.description;
-      desc.append(text);
+      desc.append(...paragraphs);
       item.append(desc);
     }
     indexList.append(item);
     return { item, link };
   });
-  // narrow screens: the active trip's description, on one line under the row of names
-  const now = document.createElement('p');
+  // narrow screens: the active trip's description, under the row of names
+  const now = document.createElement('div');
   now.className = 'trips__now';
   now.setAttribute('aria-live', 'polite');
   index.append(indexList, now);
@@ -183,7 +209,7 @@ function createPhotos(page) {
       if (k === t) link.setAttribute('aria-current', 'true');
       else link.removeAttribute('aria-current');
     });
-    now.textContent = trips[t]?.description ?? '';
+    now.replaceChildren(...descParagraphs(trips[t]?.description));
     // narrow screens: keep the active name in view along the row
     const link = entries[t]?.link;
     if (link && indexList.scrollWidth > indexList.clientWidth) {

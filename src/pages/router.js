@@ -110,7 +110,7 @@ function edgeExit(el) {
 }
 
 // The order home labels drift back in, on the way home.
-const RETURN_ORDER = ['interact', 'about', 'say-hi', 'photos', 'my-things'];
+const RETURN_ORDER = ['interact', 'about', 'say-hi', 'photos'];
 
 export function createPageRouter({ hero, pages }) {
   const floaters = [...hero.querySelectorAll('.floater')];
@@ -494,11 +494,11 @@ export function createPageRouter({ hero, pages }) {
 
 
   // ---- swiping through the pages (touch) -------------------------------------------------------------------------
-  // On a touch screen, swipe up to go home -> about -> photos -> my things -> say hi, and down to go back. Inside a page
+  // On a touch screen, swipe up to go home -> about -> photos -> say hi, and down to go back. Inside a page
   // that scrolls (a tall column, the phone photo grid) it only moves on once you've reached that end and swipe again.
   // (With a mouse or trackpad, scrolling past the end of a page pulls the next one in through the edge menu instead:
   // src/ui/scroll-pull.js.)
-  const SCROLL_ORDER = ['about', 'photos', 'my-things', 'say-hi'];
+  const SCROLL_ORDER = ['about', 'photos', 'say-hi'];
 
   function scrollStep(dir) {
     if (busy) return;

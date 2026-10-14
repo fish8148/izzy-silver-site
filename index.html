@@ -6,7 +6,19 @@
     <meta name="theme-color" content="#1a1a1a" />
     <meta name="color-scheme" content="dark" />
     <title>izzy_silver</title>
-    <meta name="description" content="izzy_silver — University of Waterloo student. Portfolio: projects, photos, and a 3D me you can poke." />
+    <meta name="description" content="Izzy Silver, a computer engineering student at the University of Waterloo. About me, photos, and a 3D me you can poke." />
+    <!-- The card a link shows when it's shared (iMessage, LinkedIn, Slack...). The image is a still of the homepage. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://isilver.uwce.ca/" />
+    <meta property="og:title" content="Izzy Silver Portfolio Site" />
+    <meta property="og:description" content="Izzy Silver, a computer engineering student at the University of Waterloo. About me, photos, and a 3D me you can poke." />
+    <meta property="og:image" content="https://isilver.uwce.ca/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Izzy's 3D character waving on a dark stage, surrounded by the links interact, about me, say hi and photos" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Izzy Silver Portfolio Site" />
+    <meta name="twitter:image" content="https://isilver.uwce.ca/og-image.jpg" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <script>
       document.documentElement.classList.add('js');
@@ -80,9 +92,11 @@
             <a class="floater__label" href="#photos" data-page="photos"><span class="full">photos</span><span class="short">pics</span></a>
           </div>
 
+          <!-- my things is out for now. To bring it back, restore this label and its section below, and see src/pages/index.js.
           <div class="floater" data-side="left" style="--h: 0.07; --want: clamp(150px, 17vw, 400px); --chars: 9; --chars-short: 6; --bob: 9.8s; --bob-delay: -4.2s; --amp: 0.95; --depth: 0.75">
             <a class="floater__label" href="#my-things" data-page="my-things"><span class="full">my things</span><span class="short">things</span></a>
           </div>
+          -->
         </nav>
 
         <!-- Sub-pages open here (see src/pages). Each is filled in by JS the first time it's opened. -->
@@ -90,7 +104,7 @@
           <section class="page" id="page-about" data-page="about" aria-label="About me" tabindex="-1" hidden></section>
           <section class="page" id="page-say-hi" data-page="say-hi" aria-label="Say hi" tabindex="-1" hidden></section>
           <section class="page" id="page-photos" data-page="photos" aria-label="Photos" tabindex="-1" hidden></section>
-          <section class="page" id="page-my-things" data-page="my-things" aria-label="My things" tabindex="-1" hidden></section>
+          <!-- <section class="page" id="page-my-things" data-page="my-things" aria-label="My things" tabindex="-1" hidden></section> -->
         </div>
 
         <button class="party-stop" id="party-stop" type="button">stop party <kbd>esc</kbd></button>
