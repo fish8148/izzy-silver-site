@@ -4,12 +4,12 @@ import { CLICK_SLOP_PX } from '../config.js';
 const CLICK_MAX_MS = 500;
 
 /**
- * Pointer handling for the canvas:
+ * Pointer handling for the canvas (listening on `target`, the canvas unless the events land somewhere else):
  *  - tells a real click apart from the end of a click-and-drag (camera rotation)
  *  - hit-tests the character with a Raycaster against the skeleton-following hit capsules
  *  - swaps the cursor to a pointer while hovering the character
  */
-export function createPicking({ canvas, camera, hitProxies, onCharacterClick }) {
+export function createPicking({ canvas, target = canvas, camera, hitProxies, onCharacterClick }) {
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
 
@@ -23,12 +23,12 @@ export function createPicking({ canvas, camera, hitProxies, onCharacterClick }) 
 
   // ---- click vs drag ----
   let down = null;
-  canvas.addEventListener('pointerdown', (event) => {
+  target.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     down = { x: event.clientX, y: event.clientY, id: event.pointerId, at: performance.now() };
   });
 
-  canvas.addEventListener('pointerup', (event) => {
+  target.addEventListener('pointerup', (event) => {
     if (!down || event.pointerId !== down.id) return;
     const moved = Math.hypot(event.clientX - down.x, event.clientY - down.y);
     const elapsed = performance.now() - down.at;
@@ -38,7 +38,7 @@ export function createPicking({ canvas, camera, hitProxies, onCharacterClick }) 
   });
 
   // The browser takes over for vertical scrolling on touch; that is never a click.
-  canvas.addEventListener('pointercancel', () => {
+  target.addEventListener('pointercancel', () => {
     down = null;
   });
 
@@ -46,7 +46,7 @@ export function createPicking({ canvas, camera, hitProxies, onCharacterClick }) 
   let queued = false;
   let lastX = 0;
   let lastY = 0;
-  canvas.addEventListener('pointermove', (event) => {
+  target.addEventListener('pointermove', (event) => {
     if (event.pointerType !== 'mouse' || event.buttons) return;
     lastX = event.clientX;
     lastY = event.clientY;
@@ -54,10 +54,10 @@ export function createPicking({ canvas, camera, hitProxies, onCharacterClick }) 
     queued = true;
     requestAnimationFrame(() => {
       queued = false;
-      canvas.classList.toggle('is-hovering-character', hitsCharacter(lastX, lastY));
+      target.classList.toggle('is-hovering-character', hitsCharacter(lastX, lastY));
     });
   });
-  canvas.addEventListener('pointerleave', () => canvas.classList.remove('is-hovering-character'));
+  target.addEventListener('pointerleave', () => target.classList.remove('is-hovering-character'));
 
   return { hitsCharacter };
 }

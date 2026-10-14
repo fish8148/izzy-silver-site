@@ -95,11 +95,17 @@ export function createAnimator({ mixer, actions, root, groundLift = {}, anchors 
     done?.(false);
   }
 
-  /** A click takes over: drop a running entrance / idle action. False while a sequence owns the character. */
+  /**
+   * A click takes over from whatever is playing: an entrance, an idle action or a sequence (the dance) is dropped, and
+   * the caller crossfades straight from it into what comes next. The sequence's owner is told it was cut short.
+   */
   function interrupt() {
-    if (sequence) return false;
+    if (sequence) {
+      const { onDone } = sequence;
+      sequence = null;
+      onDone?.(false);
+    }
     dropTransients();
-    return true;
   }
 
   // ---- entrances ------------------------------------------------------------------

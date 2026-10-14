@@ -18,9 +18,10 @@ const easeInOut = (t) => t * t * (3 - 2 * t);
  * so the character sits in the same flat dark world as the page around it.
  *
  * `framing` ({ feet, span }) places the character in the canvas; left out, it comes from the CSS (--frame-feet,
- * --frame-span), which the home screen's labels are laid out from too. (The say hi panel passes its own.)
+ * --frame-span). `events` is the element dragging happens on (default: the canvas): a page's character draws on a canvas
+ * larger than his column, which lets the mouse through, and the column takes the drags.
  */
-export function createStage(canvas, { framing } = {}) {
+export function createStage(canvas, { framing, events = canvas } = {}) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -51,7 +52,7 @@ export function createStage(canvas, { framing } = {}) {
   };
 
   // ---- controls: drag to orbit, nothing else -----------------------------------------
-  const controls = new OrbitControls(camera, canvas);
+  const controls = new OrbitControls(camera, events);
   controls.enableZoom = false;
   controls.enablePan = false;
   controls.enableDamping = true;
@@ -62,7 +63,7 @@ export function createStage(canvas, { framing } = {}) {
   controls.minPolarAngle = THREE.MathUtils.degToRad(80);
   controls.maxPolarAngle = THREE.MathUtils.degToRad(96);
   // OrbitControls sets touch-action:none, which would trap page scrolling on phones.
-  canvas.style.touchAction = 'pan-y';
+  events.style.touchAction = 'pan-y';
 
   // ---- auto-rotate: several things can hold it still; it resumes once all let go -----
   const blockers = new Set();
@@ -86,11 +87,11 @@ export function createStage(canvas, { framing } = {}) {
     frontEase = null; // dragging always wins
     block('drag');
     block('cooldown');
-    canvas.classList.add('is-dragging');
+    events.classList.add('is-dragging');
   });
   controls.addEventListener('end', () => {
     unblock('drag');
-    canvas.classList.remove('is-dragging');
+    events.classList.remove('is-dragging');
     clearTimeout(resumeTimer);
     resumeTimer = setTimeout(() => unblock('cooldown'), AUTOROTATE_RESUME_MS);
   });

@@ -124,7 +124,7 @@ export const sayHiPage = {
     page.append(root);
 
     // ---- behaviour -----------------------------------------------------------------------------------------------
-    views.set(page, pageCharacter({ canvas, note, framing: CHARACTER_FRAMING, failText: "couldn't load the 3D character, but the links still work." }));
+    views.set(page, pageCharacter({ canvas, column: side, note, framing: CHARACTER_FRAMING, failText: "couldn't load the 3D character, but the links still work." }));
 
     let sending = false;
     const ready = () => message.value.trim().length > 0;

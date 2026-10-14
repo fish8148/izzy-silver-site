@@ -56,7 +56,7 @@ function intro() {
   note.hidden = true;
   character.append(floor, canvas, note);
   section.append(text, character);
-  return { section, canvas, note };
+  return { section, canvas, note, column: character };
 }
 
 function highlight(item, k) {
@@ -120,7 +120,7 @@ export const aboutPage = {
     const top = intro();
     scroller.append(top.section, ...about.highlights.map(highlight), closing);
     page.append(scroller);
-    views.set(page, pageCharacter({ canvas: top.canvas, note: top.note, framing: FRAMING, failText: "couldn't load the 3D character, but the links still work." }));
+    views.set(page, pageCharacter({ canvas: top.canvas, column: top.column, note: top.note, framing: FRAMING, failText: "couldn't load the 3D character, but the links still work." }));
   },
 
   onShow(page) {

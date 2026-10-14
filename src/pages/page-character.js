@@ -17,13 +17,13 @@ export function preloadPageCharacter() {
  * The character on a page (features/panel-character.js): created the first time the page is shown, then each time it
  * shows he arrives anew, and he stops while it's hidden. If he can't load, `note` says so, and the next show tries again.
  */
-export function pageCharacter({ canvas, note, failText, framing }) {
+export function pageCharacter({ canvas, column, note, failText, framing }) {
   let model = null;
   let wanted = false;
   return {
     show() {
       wanted = true;
-      model ??= loadModule().then(({ createPanelCharacter }) => createPanelCharacter({ canvas, framing }));
+      model ??= loadModule().then(({ createPanelCharacter }) => createPanelCharacter({ canvas, column, framing }));
       model
         .then((character) => {
           if (import.meta.env.DEV) (window.__characters ??= {})[canvas.className] = character;

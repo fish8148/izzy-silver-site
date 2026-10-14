@@ -60,8 +60,8 @@ mesh and textures shared, its own skeleton and animations), set up by `src/featu
   and salute (`CALM_OPENERS`).
 - **Click him** to walk `CLICK_CYCLE`: idle → wave → spin (hurricane kick) → shooting arrow → warrior idle → moonwalk (in
   place) → **dance party** → salute → idle… A string is a resting state that keeps playing until the next click; an object
-  plays once then goes back to idle. A drag (turning the camera) is not a click, and a click during an arrival or an idle
-  action takes over from it (treading water goes to idle). The dance runs to its end before the next click counts. (The
+  plays once then goes back to idle. A drag (turning the camera) is not a click, and a click always interrupts whatever he's doing
+  (an arrival, an idle action, the arrow, the dance) and moves on to the next one (treading water goes to idle). (The
   breakdance freeze and dying were tried and left out: both travel too far for the character's column and drift out of view.)
 - **The dance party**: `hip hop dancing → dancing → samba dancing`, each once, the next starting on the mixer's `finished`
   event, while the page's lights go dark and colourful (a coloured spotlight, the key and rim lights cycling hue on the beat).
@@ -70,6 +70,10 @@ mesh and textures shared, its own skeleton and animations), set up by `src/featu
   never the same one twice in a row. An action can have a `cooldown` (the arrow: 20 s).
 - The camera orbits slowly on its own; drag sideways to take over, and it resumes ~3.5 s after you let go. A vertical drag or
   the wheel over him still scrolls the page.
+- **He isn't boxed in.** His canvas reaches well past his column (240px to each side, 140px above: `--over-*` in `pages.css`)
+  and fades out at its edges, so kicks, swings and the moonwalk are never cut off in a straight line; he may pass over a few
+  words for a moment. The canvas lets the mouse through, and his column takes the clicks and drags, so the text and form
+  under him stay usable. The moonwalk starts just outside his column, so it only crosses a little of the page.
 - He renders only while his page is showing. About me is the first page, so the model loads there; the canvas fades in on his
   first frame.
 

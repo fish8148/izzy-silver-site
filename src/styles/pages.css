@@ -127,6 +127,14 @@
 }
 
 /* the character, standing on the black page: no panel, the canvas is transparent */
+.about-intro__character,
+.hi-side {
+  /* how far his canvas reaches past the column */
+  --over-top: 140px;
+  --over-side: 240px;
+  --over-bottom: 40px;
+}
+
 .about-intro__character {
   position: relative;
   height: 600px;
@@ -134,26 +142,41 @@
   -webkit-user-select: none;
 }
 
-.about-intro__canvas {
+.about-intro__canvas,
+.hi-canvas {
+  /* larger than his column, so a kick, a swing or a moonwalk past its edges is never cut off (he may pass over a few
+     words for a moment). It lets the mouse through: the column under it takes the clicks and drags. */
+  /* (a canvas doesn't stretch between inset edges like a div: it needs its size spelled out) */
   position: absolute;
-  inset: 0;
+  top: calc(-1 * var(--over-top));
+  left: calc(-1 * var(--over-side));
+  width: calc(100% + 2 * var(--over-side));
+  height: calc(100% + var(--over-top) + var(--over-bottom));
   display: block;
-  width: 100%;
-  height: 100%;
-  touch-action: pan-y; /* vertical drags scroll the page; only horizontal ones turn the camera */
+  pointer-events: none;
+  /* its edges fade out, so anything crossing them (a moonwalk coming in, the start of a swing) fades rather than being cut
+     off in a straight line */
+  --fade: min(120px, var(--over-side));
+  mask-image:
+    linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent),
+    linear-gradient(to bottom, transparent, #000 min(90px, var(--over-top)), #000);
+  mask-composite: intersect;
   opacity: 0; /* fades in once he has drawn his first frame (panel-character.js adds .is-ready) */
   transition: opacity 0.4s ease;
 }
 
-.about-intro__canvas.is-ready {
+.about-intro__canvas.is-ready,
+.hi-canvas.is-ready {
   opacity: 1;
 }
 
-.about-intro__canvas.is-hovering-character {
+.about-intro__character.is-hovering-character,
+.hi-side.is-hovering-character {
   cursor: pointer;
 }
 
-.about-intro__canvas.is-dragging {
+.about-intro__character.is-dragging,
+.hi-side.is-dragging {
   cursor: grabbing;
 }
 
@@ -260,6 +283,14 @@
   .about-intro__character {
     order: -1; /* above the text */
     height: min(60vh, 520px);
+  }
+
+  .about-intro__character,
+  .hi-side {
+    /* (nothing beside him on a phone) */
+    --over-top: 60px;
+    --over-side: 24px;
+    --over-bottom: 24px;
   }
 
   .about-intro__text p {
@@ -780,6 +811,7 @@
 .hi {
   position: absolute;
   inset: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
   pointer-events: auto;
@@ -1021,30 +1053,6 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
   pointer-events: none;
-}
-
-.hi-canvas {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  cursor: default;
-  touch-action: pan-y;
-  opacity: 0; /* fades in once he has drawn his first frame (panel-character.js adds .is-ready) */
-  transition: opacity 0.4s ease;
-}
-
-.hi-canvas.is-ready {
-  opacity: 1;
-}
-
-.hi-canvas.is-hovering-character {
-  cursor: pointer;
-}
-
-.hi-canvas.is-dragging {
-  cursor: grabbing;
 }
 
 .hi-note {
