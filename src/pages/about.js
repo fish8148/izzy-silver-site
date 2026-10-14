@@ -79,7 +79,9 @@ function highlight(item, k) {
     const grid = document.createElement('div');
     grid.className = 'about-highlight__grid';
     item.photos.forEach((photo, i) => {
-      const cols = WIDE_EVERY[i % WIDE_EVERY.length];
+      let cols = WIDE_EVERY[i % WIDE_EVERY.length];
+      // a half-width photo that would sit alone at the end of a row (the last one, its partner missing) goes full width
+      if (cols === 1 && i === item.photos.length - 1 && WIDE_EVERY[(i - 1 + WIDE_EVERY.length) % WIDE_EVERY.length] !== 1) cols = 2;
       const tile = document.createElement('figure');
       tile.className = `about-highlight__photo${cols > 1 ? ' is-wide' : ''}`;
       tile.append(lazy(photoElement({ src: photo.src, alt: photo.alt ?? `${item.name}` }, { sizes: cols > 1 ? '(max-width: 959px) 92vw, 60vw' : '(max-width: 559px) 92vw, (max-width: 959px) 46vw, 30vw' })));
