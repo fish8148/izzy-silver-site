@@ -15,9 +15,12 @@
  *
  * With the edge menu open by hand, scrolling walks the menu instead.
  *
- * Wheel / trackpad, and ↑ ↓ PgUp PgDn Space at a page's edge. Touch screens swipe between pages instead (router.js).
+ * Wheel / trackpad, ↑ ↓ PgUp PgDn Space at a page's edge, and on a touch screen, dragging past the page's end (the bar
+ * follows the finger, holds while it's down, and a full pull is about a third of the screen's height).
  * Every visual is drawn from a handful of numbers (pull, pullDir, going, t) on each frame: no CSS transitions.
  */
+
+import { PAGE_ORDER } from '../pages/order.js';
 
 /** Tune here. */
 export const PULL = {
@@ -31,6 +34,7 @@ export const PULL = {
   hopUp: 22, // px the incoming page's name jumps
   dipDown: 8, // px the outgoing one dips
   menuStep: 90, // px of scroll per page while the edge menu is open by hand (scrolling then just walks the list)
+  touchReach: 0.32, // touch: a full pull is the finger travelling this share of the screen's height
   keyStep: { ArrowDown: 80, ArrowUp: -80, PageDown: 300, PageUp: -300, ' ': 300 },
 };
 
@@ -47,14 +51,19 @@ export const BAR = {
   labelGap: 16, // between the bar's middle and the next page's name
 };
 
-const ORDER = [null, 'about', 'photos', 'say-hi']; // null: the home screen
-// The row: each name's text, and its hand-set resting tilt (deg) and offset (px)
-const NAMES = [
-  { html: 'homepage', rot: -2.4, y: 2 },
-  { html: 'about me', rot: 0, y: 0 },
-  { html: 'photos', rot: -1.2, y: 1 },
-  { html: 'say <em>hi</em>', rot: -1.6, y: -1 },
+const ORDER = [null, ...PAGE_ORDER.map(({ id }) => id)]; // null: the home screen
+// The row: each name's text, and a hand-set resting tilt (deg) and offset (px) by place in the row
+const LOOK = [
+  { rot: -2.4, y: 2 },
+  { rot: 0, y: 0 },
+  { rot: -1.2, y: 1 },
+  { rot: -1.6, y: -1 },
+  { rot: 0.4, y: 0 },
 ];
+const NAMES = [{ html: 'homepage' }, ...PAGE_ORDER.map(({ name, html }) => ({ html: html ?? name }))].map((n, i) => ({
+  ...n,
+  ...LOOK[i % LOOK.length],
+}));
 // Where the change's phases fall (fractions of `duration`)
 const IN = { from: 0, span: 0.3 }; // the black coming up and the names dropping in
 const BLACK = 0.14; // ...the black is full by here, and the page changes behind it
@@ -123,6 +132,7 @@ export function createScrollPull({ router, menu, hero }) {
   let going = false;
   let cooldownUntil = 0;
   let lastInput = 0;
+  let touching = false; // a finger is holding a pull: it doesn't spring back until it lets go
   let raf = 0;
 
   // ---- where we are ------------------------------------------------------------------------------------------------
@@ -133,7 +143,7 @@ export function createScrollPull({ router, menu, hero }) {
     return i >= 0 && i < ORDER.length ? ORDER[i] : undefined;
   }
 
-  const SCROLLERS = '.page__col, .page__scroll, .trips__chapters';
+  const SCROLLERS = '.page__scroll, .trips__chapters';
   const scrolls = (el) => el.matches(SCROLLERS) && getComputedStyle(el).overflowY === 'auto' && el.scrollHeight - el.clientHeight > 1;
 
   /** The page's own scroller that `el` sits in, or, with no `el` (keyboard), the open page's main one. */
@@ -224,6 +234,55 @@ export function createScrollPull({ router, menu, hero }) {
     }
   });
 
+  // ---- touch: a drag past the page's end pulls, as the wheel does ---------------------------------------------------
+  // (Things that take a drag themselves are left alone. The gesture has to be mostly vertical, decided once it has moved a
+  // little, so swiping along the photos' row of trip names never pulls.)
+  const TOUCH_SKIP = '.carousel:not([hidden]), .interact-menu, .edge-menu, textarea, input';
+  let finger = null; // { x, y, scroller, axis: null | 'y' | 'x' }
+
+  window.addEventListener(
+    'touchstart',
+    (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      finger = event.touches.length === 1 && target && !target.closest(TOUCH_SKIP)
+        ? { x: event.touches[0].clientX, y: event.touches[0].clientY, scroller: scrollerFor(target), axis: null }
+        : null;
+    },
+    { passive: true },
+  );
+
+  window.addEventListener(
+    'touchmove',
+    (event) => {
+      if (!finger || event.touches.length !== 1) return;
+      const { clientX: x, clientY: y } = event.touches[0];
+      if (!finger.axis) {
+        const dx = Math.abs(x - finger.x);
+        const dy = Math.abs(y - finger.y);
+        if (Math.max(dx, dy) < 8) return;
+        finger.axis = dy > dx ? 'y' : 'x';
+      }
+      const dy = finger.y - y; // the finger going up scrolls down, toward the next page
+      finger.y = y;
+      if (finger.axis !== 'y' || !dy || (menu.isOpen && !pull && !going)) return;
+      const scaled = (dy * PULL.distance) / (window.innerHeight * PULL.touchReach);
+      if (feed(scaled, finger.scroller)) {
+        touching = pull > 0;
+        if (event.cancelable) event.preventDefault(); // (the page itself mustn't bounce under the pull)
+      }
+    },
+    { passive: false },
+  );
+
+  const letGo = () => {
+    finger = null;
+    if (!touching) return;
+    touching = false;
+    lastInput = performance.now(); // springs back from here, unless it was a full pull (already changing page)
+  };
+  window.addEventListener('touchend', letGo, { passive: true });
+  window.addEventListener('touchcancel', letGo, { passive: true });
+
   // ---- scrolling with the edge menu open: walk the list, one page per step ---------------------------------------
   let menuAcc = 0;
   let menuTarget = -1; // where the scrolling has got to (an index into ORDER), while the router catches up
@@ -280,7 +339,7 @@ export function createScrollPull({ router, menu, hero }) {
   /** While pulling, every frame: draw the bar, and once the scrolling stops, spring back. */
   function tick(now) {
     if (going) return;
-    if (now - lastInput > PULL.releaseDelay) pull *= PULL.springBack;
+    if (!touching && now - lastInput > PULL.releaseDelay) pull *= PULL.springBack;
     if (pull < 0.005) {
       raf = 0;
       return reset();
@@ -293,6 +352,7 @@ export function createScrollPull({ router, menu, hero }) {
   function reset() {
     menuTarget = -1;
     menuAcc = 0;
+    touching = false;
     pull = 0;
     going = false;
     menu.locked = false;

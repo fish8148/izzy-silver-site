@@ -14,15 +14,12 @@
  * pull), the link scales on hover, and the span inside floats and tilts.
  */
 
-const ITEMS = [
-  { id: null, text: 'homepage' },
-  { id: 'about', text: 'about me' },
-  { id: 'photos', text: 'photos' },
-  { id: 'say-hi', text: 'say hi' },
-];
+import { PAGE_ORDER } from '../pages/order.js';
+
+const ITEMS = [{ id: null, text: 'homepage' }, ...PAGE_ORDER.map(({ id, name }) => ({ id, text: name }))];
 
 const TRIGGER = 24; // px from the edge that opens it
-const TOUCH_TRIGGER = 32; // ...for a fingertip
+const TOUCH_TRIGGER = 18; // ...for a fingertip (narrow: a phone's content reaches to ~20px from its edges)
 const CLOSE_DELAY = 300; // ms after the cursor leaves before it folds away
 const SLACK = 48; // px around the links that still counts as "in the menu"
 const OPEN = { duration: 400, stagger: 50, travel: 64 };
@@ -208,14 +205,27 @@ export function createEdgeMenu({ router }) {
     drawSeams();
   });
 
-  // touch: no hover, so a tap at the edge opens it and a tap anywhere but a link closes it
+  // touch: no hover, so a tap at the edge opens it and a tap anywhere but a link closes it. Either way that tap is the
+  // menu's: the click it turns into is swallowed, so it doesn't also open a photo (or press whatever is underneath).
+  const swallowNextClick = () => {
+    const swallow = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    document.addEventListener('click', swallow, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 600); // (no click came: a drag)
+  };
   document.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'mouse') return;
     const { clientX: x, clientY: y } = event;
     if (open) {
-      if (!event.target.closest?.('.edge-menu__link')) hide();
-    } else if (x <= TOUCH_TRIGGER) show('left', y);
-    else if (x >= window.innerWidth - TOUCH_TRIGGER) show('right', y);
+      if (event.target.closest?.('.edge-menu__link')) return;
+      hide();
+      swallowNextClick();
+    } else if (x <= TOUCH_TRIGGER || x >= window.innerWidth - TOUCH_TRIGGER) {
+      show(x <= TOUCH_TRIGGER ? 'left' : 'right', y);
+      if (open) swallowNextClick();
+    }
   });
 
   list.addEventListener('click', (event) => {

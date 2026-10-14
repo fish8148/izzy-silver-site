@@ -42,7 +42,7 @@ src/styles/                 base / hero / floaters / party / pages
 public/character.glb        the character (generated, see below)
 public/head.glb             your head scan, for the say hi page (used as is: see "Say hi")
 public/audio/               put dance.mp3 here
-public/photos/              your photos (placeholder SVGs live here until you replace them)
+public/photos/              your photos, as made by `npm run prep:photos`
 scripts/prepare-character.mjs
 ```
 
@@ -226,10 +226,8 @@ centred and scaled to fit their circle automatically, so any size and origin wil
   iPhone HEICs as JPEG first) and run `npm run prep:photos`. Each one becomes 800px and 1600px wide AVIF + WebP files in
   `public/photos/`, turned the right way up and stripped of location/camera data, and the script prints whether each is
   `'tall'` or `'wide'`. Then point the data at the name **without an extension**, e.g. `{ src: 'photos/beach', ... }`, and
-  the browser picks the smallest file that's still sharp (`src/ui/image.js`). A `src` with an extension is used as-is (the
-  placeholder SVGs, which can be deleted once you've replaced them). Re-run the script after adding more; finished ones are skipped.
+  the browser picks the smallest file that's still sharp (`src/ui/image.js`). A `src` with an extension is used as-is. Re-run the script after adding more; finished ones are skipped.
 - **Say hi:** `src/data/contact.js` (email, links, and where messages go). **My things:** `src/data/things.js`. See those two sections above.
-- The About text currently uses the wording from your reference screenshot. Change it freely.
 
 ## Adding the other interact options later
 
@@ -262,12 +260,12 @@ centred and scaled to fit their circle automatically, so any size and origin wil
 
 ## Scrolling and touch
 
-- **Photos rows** (desktop, and tablets held sideways): drag them with a mouse, finger or pen, or swipe sideways on a trackpad. A flick coasts, then the rows carry on drifting. A drag never counts as a click.
 - **Photo viewer**: swipe or scroll sideways to move along (as well as the arrow keys and clicking a neighbour).
-- **Phones and tablets held upright**: the photos are a grid that scrolls up and down (2 columns, 3 on a tablet).
-- **Page columns** (About etc.) scroll inside the page; a soft fade at the top / bottom shows when there is more (`src/ui/scroll-fade.js`).
+- **Photos on phones** (under 900px): the trips' names become a row along the top, each trip's description sits in its chapter under its name, and the grid is 2 columns.
+- **Pages** (About, say hi on a phone) scroll inside themselves.
+- **The edge menu on a touch screen**: tap within 18px of the left or right edge. That tap (and the one that closes it) is the menu's alone: it never also presses what's underneath.
 - A landscape phone no longer forces the whole page to scroll: the hero fits the screen and the content scrolls inside it.
-- **Scrolling through the pages** (mouse / trackpad): keep scrolling past the end of a page and a glowing bar (like the edge menu's seams) rises on that edge, with the next page's name beside it. The further you pull, the longer and brighter it gets, and it bows in toward the middle like a stretched band (turning light blue at a full pull). Let go early and it springs back. At a full pull the "drop" row plays (handoff 16a): the page fades to black while a row of the page names drops in, the current one blue; the blue hands over to the next page (it hops up, the current one dips), the names fall away and the black lifts on the new page. It only ever moves one page, however long you keep scrolling. Scrolling up past the top goes back. Order: homepage → about me → photos → say hi. ↑ ↓ PgUp PgDn Space work too at a page's edge. While the edge menu is open by hand, scrolling walks it instead: every ~90px moves the blue one page and the page follows behind the menu. The numbers are in `PULL` and `BAR` at the top of `src/ui/scroll-pull.js`. On touch screens, a swipe at a page's edge steps to the next page instead (`router.js`).
+- **Scrolling through the pages** (mouse / trackpad): keep scrolling past the end of a page and a glowing bar (like the edge menu's seams) rises on that edge, with the next page's name beside it. The further you pull, the longer and brighter it gets, and it bows in toward the middle like a stretched band (turning light blue at a full pull). Let go early and it springs back. At a full pull the "drop" row plays (handoff 16a): the page fades to black while a row of the page names drops in, the current one blue; the blue hands over to the next page (it hops up, the current one dips), the names fall away and the black lifts on the new page. It only ever moves one page, however long you keep scrolling. Scrolling up past the top goes back. Order: homepage → about me → photos → say hi. ↑ ↓ PgUp PgDn Space work too at a page's edge. While the edge menu is open by hand, scrolling walks it instead: every ~90px moves the blue one page and the page follows behind the menu. The numbers are in `PULL` and `BAR` at the top of `src/ui/scroll-pull.js`. On a touch screen it works the same way by dragging past a page's end: the bar follows the finger and holds while it's down, and a full pull is about a third of the screen's height (`touchReach`). Sideways swipes never pull. The page order (for the edge menu and the pull) is `src/pages/order.js`.
 
 ## Edge menu
 

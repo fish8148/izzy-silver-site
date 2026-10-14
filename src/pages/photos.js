@@ -12,8 +12,8 @@ import { photoElement } from '../ui/image.js';
  * - Clicking a photo lifts it out of the grid and grows it into the centre while the page fades away; its neighbours
  *   (within that trip, looping) and the caption fade in as it arrives. A neighbour, ← / →, a swipe or a sideways scroll
  *   moves along. Esc, or a click on the background, sends it flying back to its tile.
- * - Under 900px wide the index becomes a row of names along the top, with the active trip's description under it, and
- *   the grid drops to two columns (pages.css).
+ * - Under 900px wide the index becomes a row of names along the top, each trip's description moves into its chapter
+ *   (under its name), and the grid drops to two columns (pages.css).
  */
 
 const canHover = window.matchMedia('(hover: hover)').matches;
@@ -85,8 +85,10 @@ const tall = (i) => photos[i].shape === 'tall';
 const aspect = (i) => (tall(i) ? 3 / 4 : 4 / 3);
 
 // How wide each is shown, for picking a file (src/ui/image.js)
-const TILE_SIZES = '(max-width: 900px) 50vw, 40vw';
-const BIG_TILE_SIZES = '(max-width: 900px) 92vw, 46vw';
+// (wide screens: the chapters take about two-thirds of the width, in 3 columns, so one tile is ~22vw and a 2-wide one
+// ~46vw; under 900px it's 2 columns across nearly the whole width. pages.css .trips__grid)
+const TILE_SIZES = '(max-width: 899px) 48vw, 22vw';
+const BIG_TILE_SIZES = '(max-width: 899px) 92vw, 46vw';
 const SLIDE_SIZES = '(max-width: 720px) 90vw, ((max-width: 1100px) and (orientation: portrait)) 90vw, 55vw';
 
 const controllers = new WeakMap(); // page element -> controller
@@ -161,11 +163,7 @@ function createPhotos(page) {
     indexList.append(item);
     return { item, link };
   });
-  // narrow screens: the active trip's description, under the row of names
-  const now = document.createElement('div');
-  now.className = 'trips__now';
-  now.setAttribute('aria-live', 'polite');
-  index.append(indexList, now);
+  index.append(indexList);
 
   // ---- the chapters ---------------------------------------------------------------------------------------------
   const scroller = document.createElement('div');
@@ -185,10 +183,20 @@ function createPhotos(page) {
     const nm = document.createElement('span');
     nm.textContent = trip.name;
     label.append(num, nm);
+    chapter.append(label);
+    // narrow screens: the description sits in the chapter, under its name, and scrolls with the photos (wide screens
+    // show it in the index instead, pages.css)
+    const paragraphs = descParagraphs(trip.description);
+    if (paragraphs.length) {
+      const desc = document.createElement('div');
+      desc.className = 'trips__chapter-desc';
+      desc.append(...paragraphs);
+      chapter.append(desc);
+    }
     const grid = document.createElement('div');
     grid.className = 'trips__grid';
     tripPhotos[t].forEach((i, k) => grid.append(buildTile(i, k, t > 0)));
-    chapter.append(label, grid);
+    chapter.append(grid);
     scroller.append(chapter);
     return chapter;
   });
@@ -209,7 +217,6 @@ function createPhotos(page) {
       if (k === t) link.setAttribute('aria-current', 'true');
       else link.removeAttribute('aria-current');
     });
-    now.replaceChildren(...descParagraphs(trips[t]?.description));
     // narrow screens: keep the active name in view along the row
     const link = entries[t]?.link;
     if (link && indexList.scrollWidth > indexList.clientWidth) {

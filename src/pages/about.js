@@ -16,7 +16,9 @@ const url = (path) => (/^(https?:)?\/\//.test(path) || path.startsWith('/') ? pa
 function resumeLink(className) {
   const link = document.createElement('a');
   link.className = className;
-  link.href = url(about.resume);
+  // (the build's fingerprint of public/resume.pdf, so an updated resume is never served from an old cache: vite.config.js)
+  const version = /^resume\.pdf$/.test(about.resume) && __RESUME_VERSION__ ? `?v=${__RESUME_VERSION__}` : '';
+  link.href = url(about.resume) + version;
   link.target = '_blank';
   link.rel = 'noopener';
   link.textContent = 'resume ↗';

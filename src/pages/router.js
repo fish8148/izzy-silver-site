@@ -2,8 +2,7 @@
  * Page transitions. Plain DOM + Web Animations API, separate from the Three.js scene.
  *
  * Pages have no header and no menu of their own: you move between them with the edge menu (src/ui/edge-menu.js), by
- * scrolling past a page's end (src/ui/scroll-pull.js), by swiping on a touch screen (below), or with the browser's
- * back / forward and Esc.
+ * scrolling or swiping past a page's end (src/ui/scroll-pull.js), or with the browser's back / forward and Esc.
  *
  * Opening a page from home (click one of the floating labels):
  *   1. the character (+ nametag, floor glow) fades out, and every label — "interact" and the clicked one included —
@@ -109,9 +108,6 @@ function edgeExit(el) {
   return { x, y: 0 };
 }
 
-// The order home labels drift back in, on the way home.
-const RETURN_ORDER = ['interact', 'about', 'say-hi', 'photos'];
-
 export function createPageRouter({ hero, pages }) {
   const floaters = [...hero.querySelectorAll('.floater')];
   const interactFloater = hero.querySelector('#interact-toggle').closest('.floater');
@@ -130,14 +126,6 @@ export function createPageRouter({ hero, pages }) {
   // The history entry we're on, as we last wrote or saw it. (A hash typed into the address bar lands on a fresh entry
   // with no state; this is what it was typed on top of.) State: { page, depth: entries since home, deep: no home behind }.
   let lastState = history.state;
-
-  /** Size the page's content column: the full width between the margins (wider layouts refine it in pages.css). */
-  function layout(page) {
-    const vw = hero.clientWidth;
-    const pad = Math.min(140, Math.max(20, vw * 0.07));
-    page.style.setProperty('--col-left', `${pad}px`);
-    page.style.setProperty('--col-width', `${Math.max(160, vw - 2 * pad)}px`);
-  }
 
   /** Esc: a page's own sub-view first (if any), then the page itself. */
   function goBack() {
@@ -197,7 +185,6 @@ export function createPageRouter({ hero, pages }) {
       def.render(page);
       page.dataset.rendered = 'true';
     }
-    layout(page);
     page.hidden = false;
     def.onShow?.(page);
     const slide = reducedMotion ? 0 : SLIDE_PX;
@@ -314,7 +301,6 @@ export function createPageRouter({ hero, pages }) {
       def.render(page);
       page.dataset.rendered = 'true';
     }
-    layout(page);
     const wasHidden = page.hidden;
     page.hidden = false;
     def.onShow?.(page);
@@ -387,7 +373,7 @@ export function createPageRouter({ hero, pages }) {
     // 2. the home screen comes back: character + floor glow fade up, and every home label drifts in from whichever
     //    edge it's nearest to, staggered. (The render loop has been running again since `page:closing`, so what fades
     //    in is already a live frame. The nametag is left to its own CSS fade: animating it here would flash it.)
-    const labels = RETURN_ORDER.map((rid) => (rid === 'interact' ? interactLabel : labelFor(rid)));
+    const labels = floaters.map((f) => f.querySelector('.floater__label')); // (top to bottom, as they float)
     for (const lbl of labels) {
       lbl.style.transform = '';
       lbl.style.opacity = '';
@@ -441,10 +427,6 @@ export function createPageRouter({ hero, pages }) {
     if (current && !busy) goBack();
   });
 
-  window.addEventListener('resize', () => {
-    if (current) layout(current.page);
-  });
-
   /**
    * Show page `id` (or home, for null) however we're currently placed: open it from home, switch to it, or close. For
    * history moves and hash edits, which can land anywhere. Mid-transition, it waits for that to finish, then goes.
@@ -495,60 +477,6 @@ export function createPageRouter({ hero, pages }) {
     open(initial, { instant: true, fromHistory: true });
   }
 
-
-  // ---- swiping through the pages (touch) -------------------------------------------------------------------------
-  // On a touch screen, swipe up to go home -> about -> photos -> say hi, and down to go back. Inside a page
-  // that scrolls (a tall column, the phone photo grid) it only moves on once you've reached that end and swipe again.
-  // (With a mouse or trackpad, scrolling past the end of a page pulls the next one in through the edge menu instead:
-  // src/ui/scroll-pull.js.)
-  const SCROLL_ORDER = ['about', 'photos', 'say-hi'];
-
-  function scrollStep(dir) {
-    if (busy) return;
-    const at = current ? SCROLL_ORDER.indexOf(current.id) : -1;
-    const next = at + dir;
-    if (next >= SCROLL_ORDER.length) return;
-    if (next < 0) {
-      if (current) close();
-    } else if (!current) open(SCROLL_ORDER[next]);
-    else switchTo(SCROLL_ORDER[next]);
-  }
-
-  /** The vertical scroller under `el` that has somewhere to go, with which of its ends you're at. */
-  function scrollEdges(el) {
-    for (let n = el; n && n !== hero; n = n.parentElement) {
-      if (!n.matches?.('.page__col, .page__scroll, .trips__chapters') || getComputedStyle(n).overflowY !== 'auto') continue;
-      const room = n.scrollHeight - n.clientHeight;
-      if (room > 4) return { top: n.scrollTop <= 2, bottom: n.scrollTop >= room - 2 };
-    }
-    return { top: true, bottom: true };
-  }
-
-  let swipe = null;
-  hero.addEventListener(
-    'touchstart',
-    (event) => {
-      const touch = event.touches[0];
-      swipe = event.touches.length === 1 && event.target instanceof Element ? { x: touch.clientX, y: touch.clientY, target: event.target, edges: scrollEdges(event.target) } : null;
-    },
-    { passive: true },
-  );
-  hero.addEventListener(
-    'touchend',
-    (event) => {
-      const start = swipe;
-      swipe = null;
-      if (!start || event.touches.length) return;
-      const touch = event.changedTouches[0];
-      const dx = touch.clientX - start.x;
-      const dy = touch.clientY - start.y;
-      if (Math.abs(dy) < 80 || Math.abs(dy) < Math.abs(dx) * 1.6) return;
-      const dir = dy < 0 ? 1 : -1; // a swipe up scrolls down
-      if (start.target.closest('.carousel:not([hidden]), .interact-menu, canvas:not(.hero__canvas), textarea')) return;
-      if (start.edges[dir > 0 ? 'bottom' : 'top']) scrollStep(dir);
-    },
-    { passive: true },
-  );
 
   /** Go to page `id`, or home for null, from wherever we are (the edge menu's links). False if mid-transition. */
   function go(id, { instant = false } = {}) {

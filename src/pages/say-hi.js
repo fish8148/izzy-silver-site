@@ -41,8 +41,11 @@ export const sayHiPage = {
   stagger: 90,
 
   preload() {
+    // (the model file itself is already cached from the home screen. A phone just fetches the code: reading a second
+    // copy of the model ahead of time would hold its memory for a page that may never be opened)
+    const phone = window.matchMedia('(pointer: coarse)').matches;
     loadCharacter()
-      .then(({ preloadCharacter }) => preloadCharacter())
+      .then(({ preloadCharacter }) => phone || preloadCharacter())
       .catch(() => {}); // (it is tried again, and reported, when the page is actually opened)
   },
 

@@ -12,7 +12,6 @@ import { createInteractMenu } from './ui/interact-menu.js';
 import { createPageRouter, pages } from './pages/index.js';
 import { createNametag } from './ui/nametag.js';
 import { createSway } from './ui/sway.js';
-import { createScrollFade } from './ui/scroll-fade.js';
 import { createEdgeMenu } from './ui/edge-menu.js';
 import { createScrollPull } from './ui/scroll-pull.js';
 
@@ -27,7 +26,6 @@ const menu = createInteractMenu({
 const hero = document.getElementById('top');
 const router = createPageRouter({ hero, pages });
 hero.addEventListener('page:returning', () => nametag.wake()); // the name floats back in with the home screen
-createScrollFade(hero);
 const edgeMenu = createEdgeMenu({ router }); // push the cursor against the left / right edge for the pages
 createScrollPull({ router, menu: edgeMenu, hero }); // scroll past the end of a page to pull in the next one
 createSway(hero); // on a phone, the labels sway with its movement

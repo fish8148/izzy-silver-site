@@ -1,9 +1,5 @@
 /* ---------- page shell ---------- */
 .hero {
-  --page-text: clamp(18px, 1.5vw + 5px, 32px);
-  --card-radius: clamp(18px, 2.4vw, 46px);
-  --pad: clamp(20px, 7vw, 140px);
-  --bleed: 64px; /* room inside the scroller for the slide-in from the left */
   /* large type on a page (my things' titles, say hi's links): about twice a floating label's size */
   --header-size: clamp(24px, 3.1vw, 64px);
 }
@@ -33,50 +29,6 @@
 
 .hero.is-page-open .hero__canvas {
   pointer-events: none;
-}
-
-/* content column — the router sets --col-left / --col-width (the margins) */
-.page__col {
-  position: absolute;
-  top: clamp(56px, 12vh, 150px);
-  bottom: 0;
-  left: calc(var(--col-left, 7vw) - var(--bleed));
-  width: calc(var(--col-width, 58vw) + var(--bleed));
-  padding: 0 0 56px var(--bleed);
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  pointer-events: auto;
-}
-
-/* scroll-edge fades: ui/scroll-fade.js adds .has-above / .has-below when there is more to scroll to */
-.page__col {
-  --fade-size: clamp(24px, 5vh, 56px);
-  --fade-top: 0px;
-  --fade-bottom: 0px;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent 100%);
-}
-
-.has-above {
-  --fade-top: var(--fade-size);
-}
-
-.has-below {
-  --fade-bottom: var(--fade-size);
-}
-
-.page__col::-webkit-scrollbar {
-  display: none;
-}
-
-.page__soon {
-  margin: 0;
-  font-size: var(--page-text);
-  line-height: 1.25;
-  color: var(--muted);
 }
 
 /* ---------- about me (the "Editorial" design, 14a) ---------- */
@@ -442,8 +394,7 @@
   padding-bottom: 10px;
 }
 
-.trips__desc p + p,
-.trips__now p + p {
+.trips__desc p + p {
   margin-top: 0.6em;
 }
 
@@ -458,8 +409,8 @@
   color: #a9d3ef;
 }
 
-.trips__now {
-  display: none; /* narrow screens only (below) */
+.trips__chapter-desc {
+  display: none; /* narrow screens only (below): wide ones show it in the index */
 }
 
 /* the chapters: the only thing that scrolls */
@@ -588,25 +539,22 @@
     display: none;
   }
 
-  .trips__now {
+  .trips__chapter-desc {
     display: block;
-    min-height: 1.5em;
-    margin: 6px 0 0;
-    padding: 0 clamp(16px, 5vw, 40px);
-    font-size: 14px;
+    margin: -4px 0 18px;
+    max-width: 60ch;
+  }
+
+  .trips__chapter-desc p {
+    margin: 0;
+    font-size: 15px;
     line-height: 1.5;
     color: var(--trip-desc);
-    max-height: 28vh; /* a long one (poland) scrolls in place instead of pushing the photos off the screen */
-    overflow-y: auto;
-    scrollbar-width: none;
+    text-wrap: pretty;
   }
 
-  .trips__now p {
-    margin: 0;
-  }
-
-  .trips__now:empty {
-    display: none;
+  .trips__chapter-desc p + p {
+    margin-top: 0.6em;
   }
 
   .trips__chapters {
@@ -1284,12 +1232,4 @@
 
 .things-motion[hidden] {
   display: none;
-}
-
-/* ---------- narrow screens ---------- */
-@media (max-width: 720px) {
-  .page__col {
-    bottom: 0;
-    padding-bottom: 24px;
-  }
 }
